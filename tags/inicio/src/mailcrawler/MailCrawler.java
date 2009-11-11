@@ -2,6 +2,11 @@
  */
 package mailcrawler;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Date;
+
 /**
  * @author Paula Montero, Carmen Roberto, Lidia Valvuena, Ignacio Mieres, Enrique Blanco, Iván Grande
  *
@@ -18,64 +23,104 @@ public class MailCrawler {
 	 * correos electrónicos. Partirá de un fichero en el que se le pasan una serie de webs de inicio,
 	 * y luego guardará las dirreciones de correo en un fichero.
 	 */
-	public MailCrawler() {
+    //Variables de clase
+    	private String nombre_fichero = "webs.txt"; //Variable privada que almacenará el nombre del fichero donde estarán
+    	//guardadas, las direcciones webs que se darán como inicio del programa.
+    	
+    	private boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
+    	//establecido, limite_tiempo sería true, para mejorar un poco su rendimiento.
+    	
+    	private MailCrawler_thread [] mailcrawlerthread;//almacenará todos los hilos activos.
+    	
+    //Variables para el funcionamiento de la clase log, de depuración.
+	private final int ERROR = 2;
+	private final int WARNING = 1;
+	private final int DEBUG = 0;
+	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardará la salida.
+    
+	public MailCrawler(String[] args) {
 		// Contructor genérico para la clase.
-	}
-
-	/**
-	 * @param args
-	 */
-	 
-	 //medotos implementados
-	 
-	 public String sacarURL (String linea )throws Exception //saca la url de una linea de tipo string, se ayuda de la funcion procesarURL
-  {
-	  
-	String url, casiurl; //en entreblanco guardaremos los tokens que hay entre dos espacios en blanco y en url buscaremos la url
-	
-	url=null; //inicializamos url a null para en las clases siguientes tener algo con que comparar para ver si habia una url en la linea
-			  //podria ser cualqquier cadena de comparacion
-	
-	StringTokenizer cadena , subcadena;
-	
-	cadena = new StringTokenizer(linea, "href"); //separamos los tokens, si hay algun token el siguiente contendra la url
-	
-	if(cadena.hasMoreToken())
-	{		//hay otro token osea ese tiene la url
-		casiurl=cadena.nextToken(); //el siguiente token es el que nos interesa 
-		casiurl=cadena.nextToken(); //este es el que tiene la url junto con mas cosas 
-		url=procesarURL(casiurl); //metodo que nos devuelve una string y le pasamos una cadena que contitne la url entre comillas
-	}	
-	return (url); //devolvemos la url si se encontro y null si no habia
-  }
-  //falta poner para que compare con una comilla,
-	public String procesarURL (String casiurl)throws Exception  //metodo que le pasamos una string que contiene una url entre comillas y la extraemos
- {  
-	// nose como hacer para que compare con una comilla , me la toma como que espera que haya algo dentro, si alguien tiene alguna idea
-	
-	String url="";//inicialmente url vacia
-	char aux; //caracter auxiliar en el que iremos metiendo los caracteres de la string casiurl para comparalo y guardarlos si es necesario
-	int cont=0; //vamos a contar el numero de comillas que llebamos procesado para ver si tenemos la url entera
-	int i=0; //indice para recorrer el string
-	
-	while (cont<2 || i<casiurl.lenth()) //el segundo por si hubo error y no hay comillas que no este ahi hasta el infinito
-	{
-		aux=casiurl.charAT(i);
-		if(cont==1 && aux!= "") //si estamos dentro de la url y no estamos ya encima de la comilla de cierre
-		{
-			url=url+aux; //concatenamos otro caracter a la url
-		}
-		if(aux== "")	cont++;	//a partir de aqui es url (segun esta no funcionaria), incrementamos cont  para saber que hay una comill mas
+	    if(args.length == 0){
+		log("No hay argumentos de entrada");	
+	    }
+	    else {
+		nombre_fichero = args[0]; //Extracción del nombre del fichero mediante el primer parámetro
+		//por consola
+	    }
 		
-	}
-	return (url);
- }
-  
-	 
+	}//fin del constructor  
 	 
 	public static void main(String[] args) {
-		// Método principal.
-
+	    // Método principal.
+		
+	    MailCrawler crawler = new MailCrawler(args);
+	    crawler.init(); //inicializa el programa
+	    
+	}//fin de main
+	private void init(){
+		//Metodo que se encarga de empezar con la ejecución del programa
+		try{
+			lanza_thread(extrae_fich(nombre_fichero)); //Extraemos del fichero las direcciones de inicio, y lanzamos los hilos
+		}
+		catch (IOException e){
+			log("Error al extraer del fichero las url: "+e,ERROR);
+		}
+	}//fin de clase init()
+	
+	
+	/* 
+	 * extrae_fich, busca en un fichero determinado las url, y las devuelve en un String.
+	 */
+	
+	private String[] extrae_fich(String nombre_fichero) throws IOException{
+		//Se le pasa por parámetros el nombre del fichero en el que va a buscar las direcciones de inicio.
+	    String[] url=null; 
+	    /*
+	     * Codigo a implementar
+	     */
+	    
+	    return url;
+	}//fin de clase extrae_fich
+	
+	
+	/*
+	 * Clase que recorre todas los campos url, y lanza un thread por cada una de ellas.
+	 */
+	private void lanza_thread(String[] url){
+	    for(int i=0;i<=url.length;i++){
+		MailCrawler_thread thread = new MailCrawler_thread(url[i]);
+		thread.start();
+	    }
 	}
-
-}
+	
+	/*
+	 * log() será una clase definida para la depuración de errores. Guardará en un archivo toda la información relevante.
+	 * A la hora de ejecutar con límite de tiempo, los mensajes con prioridad DEBUG, serán ignorados.
+	 */
+	private void log(String mensaje){
+	    if(!limite_tiempo){
+		log(mensaje,DEBUG); //por defecto, será en en modo depuracion.
+	    }
+	}
+	private void log(String mensaje,int tipo){
+		Date fyh = new Date();
+		try{
+			PrintWriter log = new PrintWriter (new FileWriter(nombrelog,true));
+			
+			if (tipo == ERROR){
+				log.println(fyh.toString()+"  ERROR: "+mensaje);
+			}
+			else if (tipo == DEBUG){
+				log.println(fyh.toString()+"  "+mensaje);
+			}
+			else if (tipo == WARNING){
+				log.println(fyh.toString()+"  WARNING: "+mensaje);
+			}
+			log.close();
+		}
+		catch (IOException e){
+			System.out.println("Imposible acceder al log: "+e.toString());
+		}
+	}
+	
+}//fin de clase MailCrawler
