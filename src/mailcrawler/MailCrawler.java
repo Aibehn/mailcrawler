@@ -2,18 +2,13 @@
  */
 package mailcrawler;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Date;
+import java.io.*;
+import java.util.*;
 
 /**
  * @author Paula Montero, Carmen Roberto, Lidia Valvuena, Ignacio Mieres, Enrique Blanco, Iván Grande
  *
  */
- 
- import java.util.*; 
- import java.io.*;
 
 
 public class MailCrawler {
@@ -29,27 +24,34 @@ public class MailCrawler {
     	
     	private boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
     	//establecido, limite_tiempo sería true, para mejorar un poco su rendimiento.
-    	
-    	private MailCrawler_thread [] mailcrawlerthread;//almacenará todos los hilos activos.
-    	
+
     //Variables para el funcionamiento de la clase log, de depuración.
 	private final int ERROR = 2;
 	private final int WARNING = 1;
 	private final int DEBUG = 0;
 	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardará la salida.
     
+	/*---------------------------------------------FIN VARIABLES DE CLASE-------------------------------*/
+	
+	
+	/*
+	 * Constructor por defecto. Se le pasan argumentos de entrada, los datos, los añade a las clases privadas.
+	 */
 	public MailCrawler(String[] args) {
 		// Contructor genérico para la clase.
 	    if(args.length == 0){
 		log("No hay argumentos de entrada");	
 	    }
 	    else {
-		nombre_fichero = args[0]; //Extracción del nombre del fichero mediante el primer parámetro
+		nombre_fichero = args[0].trim().toString(); //Extracción del nombre del fichero mediante el primer parámetro
 		//por consola
 	    }
 		
 	}//fin del constructor  
 	 
+	/**
+	 * @param args [0] = nombre_fichero donde están las direcciones de las webs de inicio.
+	 */
 	public static void main(String[] args) {
 	    // Método principal.
 		
@@ -87,10 +89,8 @@ public class MailCrawler {
 	 * Clase que recorre todas los campos url, y lanza un thread por cada una de ellas.
 	 */
 	private void lanza_thread(String[] url){
-	    for(int i=0;i<=url.length;i++){
-		MailCrawler_thread thread = new MailCrawler_thread(url[i]);
-		thread.start();
-	    }
+	    MailCrawler_monitor monitor = new MailCrawler_monitor(url);
+	    monitor.start();
 	}
 	
 	/*
