@@ -17,7 +17,7 @@ Donde stringbuffer_entrada es el StringBuffer con el código del recurso y strin
 
 Para recuperar la lista con las URLs:
 
-LinkedList\<String\> urls=new LinkedList\<String>\();
+LinkedList<String> urls=new LinkedList<String>();
 urls=nuevoGetURL.returnURL();
 
 -(posibles) Problemas:
