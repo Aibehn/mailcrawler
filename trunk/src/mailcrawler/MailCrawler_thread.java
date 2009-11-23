@@ -16,14 +16,22 @@ public class MailCrawler_thread extends Thread {
 	private final int DEBUG = 0;
 	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardar‡ la salida.
 	//
-	private boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
+	private static boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
     	//establecido, limite_tiempo ser’a true, para mejorar un poco su rendimiento.
 	
-	public static final String DISALLOW = "Disallow:";//directiva para buscar en robots.txt
+	//private LinkedList<URL> por_procesar= new LinkedList<URL>();//cada thread tendr‡ su variable propia
 	
-	private LinkedList<String> por_procesar= new LinkedList<String>();//cada thread tendr‡ su variable propia
-	
-    	//private static LinkedList<MailCrawler_thread> mailcrawlerlist = (LinkedList<MailCrawler_thread>)Collections.synchronizedList(new LinkedList<MailCrawler_thread>()); //almacenar‡ todos los hilos activos.
+    	private LinkedList<String> lista_mails = new LinkedList<String>(); 
+    	//variable donde guardar‡ los mails obtenidos
+    	private LinkedList<String> lista_urls = new LinkedList<String>(); 
+    	
+    	
+    	private Data_crawler data;
+    	//variable donde alamacenar‡ los enlaces obtenidos
+	//private LinkedList<URL> lista_urls_externas = new LinkedList<URL>(); //almacenar‡ la lista de enlaces externos para devolverlos al monitor.
+    	//private  static LinkedList<URL> url_visitadas = new LinkedList<URL>();//variable que almacenar‡ las url internas visitadas.
+	//private String host;
+	//private static LinkedList<MailCrawler_thread> mailcrawlerlist = (LinkedList<MailCrawler_thread>)Collections.synchronizedList(new LinkedList<MailCrawler_thread>()); //almacenar‡ todos los hilos activos.
     	//private static HashMap<String,HashSet<String>> ip = (HashMap<String,HashSet<String>>)Collections.synchronizedMap(new HashMap<String,HashSet<String>>());
     	//Variable sincronizada con Hilos, que almacenar‡ las IPs visitadas, as’ como los recursos visitados
     	//asociados a ellas.
@@ -32,26 +40,41 @@ public class MailCrawler_thread extends Thread {
 	/**
 	 * Constructor por defecto.
 	 */
-	MailCrawler_thread(String url){
-	    por_procesar.add(url);
+	MailCrawler_thread(Data_crawler datos,String strURL) throws Exception {
+	    data = datos;
+	    URL url = comprueba_url(strURL);
+	    data.addone_toprocess(url);
 	}
 	/*
-	 * Otro contructor
+	 * Constructor asociado asociado a un grupo, sobre una url de tipo String.
 	 */
-	MailCrawler_thread(List<String> url){
-	    ListIterator<String> it = url.listIterator();
-	    while(it.hasNext()){
-		por_procesar.add(it.next());
-	    }//fin de while
+	MailCrawler_thread(ThreadGroup g,String name,Data_crawler datos,String strURL) throws Exception{
+	    super(g,name);
+	    data = datos;
+	    URL url = comprueba_url(strURL);
+	    data.addone_toprocess(url);
+	}
+	
+	/*
+	 * Constructor asocidado a un grupo, sobre una url de tipo URL.
+	 */
+	
+	MailCrawler_thread(ThreadGroup g,String name,Data_crawler datos,URL url){
+	    super(g,name);
+	    data = datos;
+	    data.addone_toprocess(url);
 	}
 	
 	/*
 	 * Constructor con una configuraci—n determinada.
 	 */
-	MailCrawler_thread(String url,String log,Boolean limitetiempo){
+	MailCrawler_thread(ThreadGroup g, String name,Data_crawler datos,String strURL,String log,Boolean limitetiempo)throws Exception {
+	    super(g,name);
 	    nombrelog=log;
 	    limite_tiempo=limitetiempo;
-	    por_procesar.add(url);
+	    data=datos;
+	    URL url = comprueba_url(strURL);
+	    data.addone_toprocess(url);
 	}
 	
 	/*
@@ -59,139 +82,144 @@ public class MailCrawler_thread extends Thread {
 	 * Clase inicial del programa, se invocar‡ cuando se ejectute thread.start
 	 */
 	public void run(){
-	    while(!por_procesar.isEmpty()){	
-		String strURL = por_procesar.removeFirst();
-
-		if (strURL.length() == 0) {
-		    log("URL vac’a.",ERROR);
-		    return;
-		}		
-		URL url;
-		try { 
-		    url = new URL(strURL);
-		}//fin de try 
-		catch (MalformedURLException e) {
-		    log("ERROR: URL inv‡lida " + strURL);
-		    break;
+	    log("Inicio de la ejecuci—n del thread");
+	    
+	    while(!data.isEmpty()&&!data.finalizar()){
+		//obtenemos una de las urls que necesitamos procesar.
+		URL url_toprocess = data.get_toprocess();
+		
+		try{
 		    
-		    /*
-		     * Falta implementar
-		     */
-		}//fin de catch
+		    StringBuffer content = descargar_url (url_toprocess);
+		    log("Descarga del contenido de la url: "+url_toprocess.toString());
+		    //lista_urls = GetURL.getURL(content);
+		    lista_mails = Utils.sacaMailTo(content);
+		    data.add_visited(url_toprocess); //marcamos la url actual como buscada.
+		    LinkedList<URL> lista_URL = new LinkedList<URL>();
+		    lista_URL = new LinkedList<URL>(comprueba_urls(lista_urls));
+		    //comprobamos que las URL obtenidas son v‡lidas y las a–adimos a la lista
+		    //para procesarlas.
+		    data.add_toprocess(lista_URL);
+		    
+		    data.add_mails(lista_mails);
+		    
 
-		// comprobamos protocolo http://
+		}//fin de try
+		
+		catch (MalformedURLException e) {
+		    log("URL inv‡lida: " + e,ERROR);
+		}//fin de catch
+		
+		catch (IOException e) {
+		    log("No se puede abrir la URL: " + e,ERROR);
+		}//fin de catch
+		catch (Exception e){
+		    log("Error: "+e,ERROR);
+		}
+	    }//fin de while
+		// searchThread.stop();
+	    log("Finalizaci—n del thread.");
+	    notify();//notificamos que el hilo ha finalizado.
+	}//fin de clase run
+
+	
+/*
+ * Funci—n que comprueba el estado de una lista de URL's	
+ */
+	private LinkedList<URL> comprueba_urls(LinkedList<String> list){
+	    log("Comprobamos una lista de urls.");
+	    ListIterator<String> it = list.listIterator();
+	    LinkedList<URL>listurl = new LinkedList<URL>(); 
+	    while(it.hasNext()){
+		try{
+		    URL url=comprueba_url(it.next());
+		    listurl.add(url);
+		}
+		catch(Exception e){
+		    log("URL inv‡lida: "+e,WARNING);
+		}
+	    }//fin de while
+	    log("Fin de la comprobaci—n de la lista de urls");
+	    return listurl;
+	}//fin de comprueba_urls
+/*
+ * Funci—n que comprueba el estado de una URL
+ */
+	private URL comprueba_url(String strURL) throws Exception{
+	    
+	    log("Inicio de la comprobaci—n de la URL: "+strURL);
+	    if (strURL.length() == 0) {
+		throw new Exception("URL vac’a.");
+	    }
+	    
+	    URL url = new URL(strURL);
+	    // comprobamos protocolo http://
 		if (url.getProtocol().compareTo("http") != 0) 
-			break;
+		    throw new Exception("Protocolo no http.");
 
 		// comprobamos que la url es accesible para robots
 		if (!robotSafe(url))
-		    break;
-
-		try {
+		    throw new Exception("URL no accesible para ROBOTS");
+		
+		
+		
 		// intentanmos una conexi—n
-		    URLConnection urlConnection = url.openConnection();
+		URLConnection urlConnection = url.openConnection();
 
-		    urlConnection.setAllowUserInteraction(false);
+		urlConnection.setAllowUserInteraction(false);
 
-		    InputStream urlStream = url.openStream();
-		    String type = URLConnection.guessContentTypeFromStream(urlStream);
-			
-			//comprobamos text/html
-		    if (type == null)
-			break;
-		    if (type.compareTo("text/html") != 0) 
-			break;
+		InputStream urlStream = url.openStream();
+		String type = URLConnection.guessContentTypeFromStream(urlStream);
+				
+		//comprobamos text/html
+		if (type == null)
+		    throw new Exception("Tipo de formato de la URL no v‡lido: "+type);
+		if (type.compareTo("text/html") != 0) 
+		    throw new Exception("Tipo de formato del recurso no soportado: "+type);
 
-			// buscamos en el inputstream links
-			// primero, leemos la URL entera
-		    byte b[] = new byte[1000];
-		    int numRead;
-		    StringBuffer content= new StringBuffer();
-		    do{   	    
-			numRead = urlStream.read(b);
-			if (numRead != -1) {
-			    String newContent = new String(b, 0, numRead).toLowerCase();
-			    content.append(newContent);
-			}
-		    }//fin de do-while
-		    while (numRead != -1);
-			
-		    urlStream.close(); //cerramos el stream
-			
-			/*
-			 * Llamada a la funcion de procesar el BufferStream
-			 */
-		  //GetURL obtenerEnlaces=new GetURL(parametros);
-			
+		return url; 
 
-		}//fin de try
-		catch (IOException e) {
-		    //setStatus("ERROR: couldn't open URL " + strURL);
-		    continue;
-		}//fin de catch
-	    }//fin de while
-		// searchThread.stop();
-	 
-	}//fin de clase run
+	}// fin de funcition: comprueba_url
+	
+	
 	/*
-	 * Extraida de internet: Chequea si la web es accesible para robots
-	 * retorna true si es posible
-	 * 
-	 * Puede quitarse si se quiere mejorar el funcionamiento, no es indispensable.
+	 * Funci—n que descarga el c—digo fuente de la web.
+	 * Se le pasa como par‡mentro un InputStream, y devuelve en
+	 * content, el c—digo fuente.
 	 */
-	boolean robotSafe(URL url) {
-	    String strHost = url.getHost();
+	
+	private StringBuffer descargar_url(URL url) throws Exception{
+	
+	    // intentanmos una conexi—n
+	    URLConnection urlConnection = url.openConnection();
 
-	    // form URL of the robots.txt file
-	    String strRobot = "http://" + strHost + "/robots.txt";
-	    URL urlRobot;
-	    try { 
-		urlRobot = new URL(strRobot);
-	    } catch (MalformedURLException e) {
-		// something weird is happening, so don't trust it
-		return false;
-	    }
-	    String strCommands;
-	    try {
-		InputStream urlRobotStream = urlRobot.openStream();
-		// read in entire file
-		byte b[] = new byte[1000];
-		int numRead = urlRobotStream.read(b);
-		strCommands = new String(b, 0, numRead);
-		while (numRead != -1) {
-		    numRead = urlRobotStream.read(b);
-		    if (numRead != -1) {
-			String newCommands = new String(b, 0, numRead);
-			strCommands += newCommands;
-		    }
+	    urlConnection.setAllowUserInteraction(false);
+
+	    InputStream urlStream = url.openStream();
+
+	    // buscamos en el inputstream links
+	    // primero, leemos la URL entera
+	    byte b[] = new byte[1000];
+	    int numRead;
+	    StringBuffer content= new StringBuffer();
+	    do{   	    
+		numRead = urlStream.read(b);
+		if (numRead != -1) {
+		    String newContent = new String(b, 0, numRead).toLowerCase();
+		    content.append(newContent);
 		}
-		urlRobotStream.close();
-	    } catch (IOException e) {
-		    // if there is no robots.txt file, it is OK to search
-		return true;
-	    }
+	    }//fin de do-while
+	    while (numRead != -1);
+			
+	    urlStream.close(); //cerramos el stream
+	    return content; //retormanos el c—digo fuente obtenido.
+	
+	}// fin de funci—n: descargar_url
+	
+	private boolean robotSafe(URL url){
+	    return Utils.robotSafe(url);
+	}
 
-	    // assume that this robots.txt refers to us and 
-	    // search for "Disallow:" commands.
-	    String strURL = url.getFile();
-	    int index = 0;
-	    while ((index = strCommands.indexOf(DISALLOW, index)) != -1) {
-		index += DISALLOW.length();
-		String strPath = strCommands.substring(index);
-		StringTokenizer st = new StringTokenizer(strPath);
-
-		if (!st.hasMoreTokens())
-		    break;
-		    
-		String strBadPath = st.nextToken();
-
-		    // if the URL starts with a disallowed path, it is not safe
-		    if (strURL.indexOf(strBadPath) == 0)
-			return false;
-	    }
-	    
-	    return true;
-	    }
 	
 	/*
 	 * Clase utilizada para la depuraci—n y salida por fichero de mensajes relevantes.
@@ -201,7 +229,7 @@ public class MailCrawler_thread extends Thread {
 	    if(!limite_tiempo){
 		log(mensaje,DEBUG); //por defecto, serán en modo depuracion.
 	    }
-	}
+	}//fin de log()
 	
 	private void log(String mensaje,int tipo){
 		Date fyh = new Date();
