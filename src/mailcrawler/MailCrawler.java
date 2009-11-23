@@ -31,6 +31,8 @@ public class MailCrawler {
 	private final int DEBUG = 0;
 	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardará la salida.
     
+	
+	MailCrawler_monitor monitor;
 	/*---------------------------------------------FIN VARIABLES DE CLASE-------------------------------*/
 	
 	
@@ -40,11 +42,20 @@ public class MailCrawler {
 	public MailCrawler(String[] args) {
 		// Contructor genérico para la clase.
 	    if(args.length == 0){
-		log("No hay argumentos de entrada");	
+		log("No hay argumentos de entrada");
+		System.out.println("Puede Introducir argumentos de entrada: nombre_fichero limite_tiempo nombrelog");
 	    }
 	    else {
-		nombre_fichero = args[0].trim().toString(); //Extracción del nombre del fichero mediante el primer parámetro
-		//por consola
+		if(args[0].length()!=0){
+		    nombre_fichero = args[0].trim().toString(); //Extracción del nombre del fichero mediante el primer parámetro
+		    //por consola
+		}
+		if(args[1].length()!=0 && args[1].trim().equalsIgnoreCase("true")){
+		    limite_tiempo=true;
+		}
+		if(args[2].length()!=0){
+		    nombrelog=args[2].trim().toString();
+		}
 	    }
 		
 	}//fin del constructor  
@@ -70,28 +81,66 @@ public class MailCrawler {
 	}//fin de clase init()
 	
 	
-	/* 
-	 * extrae_fich, busca en un fichero determinado las url, y las devuelve en un String.
-	 */
 	
-	private String[] extrae_fich(String nombre_fichero) throws IOException{
-		//Se le pasa por parámetros el nombre del fichero en el que va a buscar las direcciones de inicio.
-	    String[] url=null; 
-	    /*
-	     * Codigo a implementar
-	     */
+/*
+....
+Clase recibe el nombre de un fichero como parametro, lo lee linea a linea, y guarda cada una 
+en una posicion de una LinkedList que devuelve.
+....
+*/
+	private LinkedList<String> extrae_fich(String nombre_fichero) throws IOException {
+	    LinkedList<String> url=new LinkedList<String>();
+
+	    // Flujos
+	    FileReader fr = new FileReader(nombre_fichero);
+	    BufferedReader bf = new BufferedReader(fr);
+	    String linea=bf.readLine();
 	    
+	    while (linea!=null)	{
+		url.add(linea);
+		linea=bf.readLine();
+	    }
 	    return url;
-	}//fin de clase extrae_fich
+	}//fin de método
+/*
+....
+Clase que recibe como parametro un Hashset, de el recoge los strings que contiene y los
+guarda en nuestro fichero (mails.txt)
+....
+*/
+	public static void guarda_fich(HashSet<String> mails) throws IOException {
+
+	    String sFichero = "mails.txt";
+	    FileWriter fw = new FileWriter(sFichero,true);
+	    Iterator<String> it = mails.iterator();
+	    while(it.hasNext()){
+		fw.write(it.next());
+		fw.write("\r\n");
+	    }//fin de while
+	    fw.close();
+	}//fin de método
 	
 	
 	/*
-	 * Clase que recorre todas los campos url, y lanza un thread por cada una de ellas.
+	 * Clase que lanza un thread monitor.
 	 */
-	private void lanza_thread(String[] url){
-	    MailCrawler_monitor monitor = new MailCrawler_monitor(url);
+	private void lanza_thread(LinkedList<String> url){
+	    monitor = new MailCrawler_monitor(url);
 	    monitor.start();
 	}
+	
+	/*
+	 * Función cuyo cometido será el de finalizar la búsqueda.
+	 */
+	private boolean finaliza(HashSet<String> mails){
+	    if(monitor==null){
+		log("No hay una búsqueda en ejecución.",WARNING);
+		return false;
+	    }
+	    else{
+		return monitor.finalizar(mails);
+	    }
+	}//fin de método.
 	
 	/*
 	 * log() será una clase definida para la depuración de errores. Guardará en un archivo toda la información relevante.
