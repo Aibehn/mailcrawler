@@ -87,6 +87,7 @@ public static void guarda_fich(HashSet<String> nom) throws IOException {
 
 						indice=fichero.indexOf(delimitador);
 							if(indice==0) indice=fichero.length();
+							if(indice==-1) indice=fichero.length();
 						linea=fichero.substring(0,indice);
 						fichero.delete(0,indice);
 						buscarMail(linea,resultados);
