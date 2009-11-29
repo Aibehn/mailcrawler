@@ -18,64 +18,56 @@ public class MailCrawler_thread extends Thread {
 	//
 	private static boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
     	//establecido, limite_tiempo ser’a true, para mejorar un poco su rendimiento.
-	
-	//private LinkedList<URL> por_procesar= new LinkedList<URL>();//cada thread tendr‡ su variable propia
-	
+		
     	private LinkedList<String> lista_mails = new LinkedList<String>(); 
     	//variable donde guardar‡ los mails obtenidos
     	private LinkedList<String> lista_urls = new LinkedList<String>(); 
     	
+    	private Thread monitor; //thread padre
     	
-    	private Data_crawler data;
-    	//variable donde alamacenar‡ los enlaces obtenidos
-	//private LinkedList<URL> lista_urls_externas = new LinkedList<URL>(); //almacenar‡ la lista de enlaces externos para devolverlos al monitor.
-    	//private  static LinkedList<URL> url_visitadas = new LinkedList<URL>();//variable que almacenar‡ las url internas visitadas.
-	//private String host;
-	//private static LinkedList<MailCrawler_thread> mailcrawlerlist = (LinkedList<MailCrawler_thread>)Collections.synchronizedList(new LinkedList<MailCrawler_thread>()); //almacenar‡ todos los hilos activos.
-    	//private static HashMap<String,HashSet<String>> ip = (HashMap<String,HashSet<String>>)Collections.synchronizedMap(new HashMap<String,HashSet<String>>());
-    	//Variable sincronizada con Hilos, que almacenar‡ las IPs visitadas, as’ como los recursos visitados
-    	//asociados a ellas.
+    	private String strURL="";
+    	private Data_crawler data; //variable de datos sincronizada para el acceso desde varios threads.
+
 	/*---------------------------------------------FIN VARIABLES DE CLASE-------------------------------*/
 	
+    
 	/**
 	 * Constructor por defecto.
 	 */
-	MailCrawler_thread(Data_crawler datos,String strURL) throws Exception {
+	MailCrawler_thread(Data_crawler datos,String url) throws Exception {
 	    data = datos;
-	    URL url = comprueba_url(strURL);
-	    data.addone_toprocess(url);
+	    
+	    limite_tiempo=data.get_limite_tiempo();
+	    nombrelog=data.get_nombrelog();
+	    strURL = url;
+	    
 	}
 	/*
 	 * Constructor asociado asociado a un grupo, sobre una url de tipo String.
 	 */
-	MailCrawler_thread(ThreadGroup g,String name,Data_crawler datos,String strURL) throws Exception{
+	MailCrawler_thread(Thread th,ThreadGroup g,String name,Data_crawler datos,String url) throws Exception{
 	    super(g,name);
 	    data = datos;
-	    URL url = comprueba_url(strURL);
-	    data.addone_toprocess(url);
+	    limite_tiempo=data.get_limite_tiempo();
+	    nombrelog=data.get_nombrelog();
+	    strURL=url;
+	    monitor = th;
+	    
 	}
 	
 	/*
 	 * Constructor asocidado a un grupo, sobre una url de tipo URL.
 	 */
 	
-	MailCrawler_thread(ThreadGroup g,String name,Data_crawler datos,URL url){
+	MailCrawler_thread(Thread th,ThreadGroup g,String name,Data_crawler datos,URL url){
 	    super(g,name);
 	    data = datos;
 	    data.addone_toprocess(url);
+	    monitor = th;
+	    limite_tiempo=data.get_limite_tiempo();
+	    nombrelog=data.get_nombrelog();
 	}
 	
-	/*
-	 * Constructor con una configuraci—n determinada.
-	 */
-	MailCrawler_thread(ThreadGroup g, String name,Data_crawler datos,String strURL,String log,Boolean limitetiempo)throws Exception {
-	    super(g,name);
-	    nombrelog=log;
-	    limite_tiempo=limitetiempo;
-	    data=datos;
-	    URL url = comprueba_url(strURL);
-	    data.addone_toprocess(url);
-	}
 	
 	/*
 	 * @see java.lang.Thread#run()
@@ -83,6 +75,16 @@ public class MailCrawler_thread extends Thread {
 	 */
 	public void run(){
 	    log("Inicio de la ejecuci—n del thread");
+	    
+	    if(strURL.length()!=0){
+		try{
+		    URL url = comprueba_url(strURL);
+		    data.addone_toprocess(url);
+		}//fin de try
+		catch(Exception e){
+		    log("La URL de partida: "+strURL+" no es valida: "+e.toString());
+		}
+	    }
 	    
 	    while(!data.isEmpty()&&!data.finalizar()){
 		//obtenemos una de las urls que necesitamos procesar.
@@ -92,7 +94,7 @@ public class MailCrawler_thread extends Thread {
 		    
 		    StringBuffer content = descargar_url (url_toprocess);
 		    log("Descarga del contenido de la url: "+url_toprocess.toString());
-		    //lista_urls = GetURL.getURL(content);
+		    lista_urls = Utils.getURL(url_toprocess.toString(),content);
 		    lista_mails = Utils.sacaMailTo(content);
 		    data.add_visited(url_toprocess); //marcamos la url actual como buscada.
 		    LinkedList<URL> lista_URL = new LinkedList<URL>();
@@ -107,19 +109,27 @@ public class MailCrawler_thread extends Thread {
 		}//fin de try
 		
 		catch (MalformedURLException e) {
-		    log("URL inv‡lida: " + e,ERROR);
+		    log("URL inv‡lida: " + e.toString(),ERROR);
 		}//fin de catch
 		
 		catch (IOException e) {
-		    log("No se puede abrir la URL: " + e,ERROR);
+		    log("No se puede abrir la URL: " + e.toString(),ERROR);
 		}//fin de catch
 		catch (Exception e){
-		    log("Error: "+e,ERROR);
+		    log("Error: "+e.toString(),ERROR);
 		}
 	    }//fin de while
 		// searchThread.stop();
-	    log("Finalizaci—n del thread.");
-	    notify();//notificamos que el hilo ha finalizado.
+	    log("Finalizacion del thread.");
+	    try{
+		synchronized(this){
+		    monitor.notify();//notificamos que el hilo ha finalizado.
+	    
+		}//fin de synchronized
+	    }//fin de try
+	    catch(IllegalMonitorStateException e){
+		log("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString(),ERROR);
+	    }
 	}//fin de clase run
 
 	
@@ -136,10 +146,10 @@ public class MailCrawler_thread extends Thread {
 		    listurl.add(url);
 		}
 		catch(Exception e){
-		    log("URL inv‡lida: "+e,WARNING);
+		    log("URL invalida: "+e.toString(),WARNING);
 		}
 	    }//fin de while
-	    log("Fin de la comprobaci—n de la lista de urls");
+	    log("Fin de la comprobacion de la lista de urls");
 	    return listurl;
 	}//fin de comprueba_urls
 /*
@@ -147,7 +157,7 @@ public class MailCrawler_thread extends Thread {
  */
 	private URL comprueba_url(String strURL) throws Exception{
 	    
-	    log("Inicio de la comprobaci—n de la URL: "+strURL);
+	    log("Inicio de la comprobacion de la URL: "+strURL);
 	    if (strURL.length() == 0) {
 		throw new Exception("URL vac’a.");
 	    }
@@ -173,7 +183,7 @@ public class MailCrawler_thread extends Thread {
 				
 		//comprobamos text/html
 		if (type == null)
-		    throw new Exception("Tipo de formato de la URL no v‡lido: "+type);
+		    throw new Exception("Tipo de formato de la URL no valido: "+type);
 		if (type.compareTo("text/html") != 0) 
 		    throw new Exception("Tipo de formato del recurso no soportado: "+type);
 
@@ -232,6 +242,7 @@ public class MailCrawler_thread extends Thread {
 	}//fin de log()
 	
 	private void log(String mensaje,int tipo){
+	    mensaje = "THREAD: "+mensaje;
 		Date fyh = new Date();
 		try{
 			PrintWriter log = new PrintWriter (new FileWriter(nombrelog,true));

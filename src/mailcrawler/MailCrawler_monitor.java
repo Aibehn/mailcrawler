@@ -10,40 +10,46 @@ public class MailCrawler_monitor extends Thread{
 	private final int ERROR = 2;
 	private final int WARNING = 1;
 	private final int DEBUG = 0;
-	
-	//
-	//private static LinkedList<MailCrawler_thread> mailcrawlerlist = (LinkedList<MailCrawler_thread>)Collections.synchronizedList(new LinkedList<MailCrawler_thread>()); //almacenará todos los hilos activos.
-    	//private static HashMap<String,HashSet<String>> ip = (HashMap<String,HashSet<String>>)Collections.synchronizedMap(new HashMap<String,HashSet<String>>());
-    	//Variable sincronizada con Hilos, que almacenará las IPs visitadas, así como los recursos visitados
-    	//asociados a ellas.
-   
+	 
 	
 	private static final long timeout = 1000;//valor a esperar 1 seg.
 	private LinkedList<String> por_procesar= new LinkedList<String>();//cada thread tendrá su variable propia
-	//private static HashSet<String> mail_list = new HashSet<String>();//almacenará la lista de mails
+
 	private int N = 0; //número de threads activos
 	private static final int N_MAX = 10; //número máximo de threads activos que podemos tener.
 	private ThreadGroup mailcrawler_group; //almacenará el grupo de threads.
 	
 	private Data_crawler data; //alamacenará los datos de ejecución del programa.
 	
+	private boolean finaliza_correctamente = false;
+	
 	/*---------------------------------------------FIN VARIABLES DE CLASE-------------------------------*/
     	
-    	/*
+    	public boolean finalizacorrectamente(){
+    	    return finaliza_correctamente;
+    	}
+    	public Data_crawler get_data(){
+    	    return data;
+    	}
+	
+	/*
     	 * Constructor por defecto.
     	 */
-    	MailCrawler_monitor(LinkedList<String> url){
+    	MailCrawler_monitor(LinkedList<String> url,String nombrelog,boolean limite_tiempo){
     	    ListIterator<String> it = url.listIterator();
     	    while(it.hasNext()){
     		por_procesar.add(it.next());
     	    }//fin de for
     	    mailcrawler_group = new ThreadGroup("crawler");
-    	    data = new Data_crawler();	
+    	    data = new Data_crawler();
+    	    data.set_nombrelog(nombrelog);
+    	    data.set_limite_tiempo(limite_tiempo);
+    	    
     	}//fin de constructor por defecto
     	
     	
     	public void run(){
-    	    log("Ejecución del thread MailCrawler_monitor");
+    	    log("Ejecucion del thread MailCrawler_monitor");
     	    
     	    int numerate = 0;
     	    
@@ -53,53 +59,68 @@ public class MailCrawler_monitor extends Thread{
     		String strURL = por_procesar.removeFirst();
     		try{
     		    MailCrawler_thread thread = new MailCrawler_thread
-    		    				(mailcrawler_group,"thread_"+numerate,data,strURL);
-    		    thread.start();
+    		    				(this,mailcrawler_group,"thread_"+numerate,data,strURL);
     		    
-    		log("Lanzamos un thread sobre la url: "+strURL);
+    		    log("Lanzamos un thread sobre la url: "+strURL);
+    		    thread.start();
+    		
     		}//fin de try
     		catch(Exception e){
-    		    log("Error al crear un thread: "+e,ERROR);
+    		    log("Error al crear un thread: "+e.toString(),ERROR);
     		}
     		numerate++;
     		
     	    }//fin de while !por_procesar
     	    
+    	    N=mailcrawler_group.activeCount();//numero de hilos activos
     	    
-    	    while(!data.finalizar()){
+    	    while((!data.isEmpty() || N!=0) && !data.finalizar()){
     		//ejecutamos la exploración del conteo de threads hasta que no tengamos que finalizar.
+    		//Seguimos aquí dentro si: Tenemos hilos activos sin datos que procesar, sin que tengamos que finalizar
+    		//o, si tenemos data que procesar, pero todos los hilos están muertos.
     		
-    		N=mailcrawler_group.activeCount();//numero de hilos activos
-    		
-    		if(N!=0 && N<N_MAX){
-    		    //aún hay hilos activos, pero podemos procesar más.
-    		    URL url=data.get_toprocess();   		   
-    		    //esperamos hasta que haya datos que procesar
-    		    while(url == null){
-    			try{
-    			    this.wait(timeout); //esperamos un tiempo
-    			}//fin de try
-    			catch(InterruptedException e){
-    			    log("Thread en estado de interrupción: "+e,WARNING);
-    			}
-    			url=data.get_toprocess();
-    		    }//fin de while
-    		    
-    		    
+    		if(N<N_MAX && !data.isEmpty()){    		       		   
+    		    //tenemos datos que procesar y podemos ejecutar más hilos -> podemos lanzar más hilos.
+    		    URL url=data.get_toprocess();
     		    MailCrawler_thread thread = new MailCrawler_thread
-				(mailcrawler_group,"thread_"+numerate,data,url);
+				(this,mailcrawler_group,"thread_"+numerate,data,url);
     		    thread.start();
     		    log("Lanzamos un nuevo thread, ya que el numero actual de hilos era: "+N);
     		    numerate++;
     		}//fin de if N_MAX
-    		try{
-    		    this.wait(timeout); //esperamos un tiempo
-    		}//fin de try
-    		catch(InterruptedException e){
-    		    log("Thread en estado de interrupción: "+e,WARNING);
-    		}
+    		
+    		//espera del monitor de comprobación: realizamos la comprobación del estado de los threads, cada
+    		//determinado tiempo.
+    		synchronized(this){
+    		    try{
+    			wait(timeout); //esperamos un tiempo
+    		    }//fin de try
+    		    catch(InterruptedException e){
+    			log("Thread en estado de interrupcion: "+e.toString(),WARNING);
+    		    }
+    		    catch(IllegalMonitorStateException e){
+    			log("Error de monitor: "+e.toString(),ERROR);
+    		    }
+    		}//fin de synchronized
+    		N=mailcrawler_group.activeCount();//numero de hilos activos
     	    }//fin de while
-    	    log("Fin de ejecución de la clase MailCrawler_monitor");
+    	    if(!data.finalizar()){
+    		//si se ha terminado el programa porque no hay datos, ni hilos que finalizar, guardamos
+    		//los datos que tengamos hasta ahora.
+    		finaliza_correctamente=false;
+    	    }
+    	    else{
+    		finaliza_correctamente=true;
+    	    }
+    	    try{
+		synchronized(this){
+		    notify();//notificamos que el hilo ha finalizado.
+		}//fin de synchronized
+	    }//fin de try
+	    catch(IllegalMonitorStateException e){
+		log("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString(),ERROR);
+	    }
+    	    log("Fin de ejecucion de la clase MailCrawler_monitor");
     	}//fin de run
     	
     	
@@ -119,13 +140,13 @@ public class MailCrawler_monitor extends Thread{
     		    
     		}//fin de try
     		catch(InterruptedException e){
-    		    log("Error al finalizar: "+e,ERROR);
+    		    log("Error al finalizar: "+e.toString(),ERROR);
     		    return false;
     		}
     	    }
     	    while(N!=0 || this.isAlive());
     	    mails = data.get_mails(); //devolvemos en la variable que nos pasan la lista de mails
-    	    log("Finalización de Forma correcta");
+    	    log("Finalizacion de Forma correcta");
     	    return true;
     	}//fin de finalizar()
     	
@@ -137,6 +158,7 @@ public class MailCrawler_monitor extends Thread{
 	    log(mensaje,DEBUG); //por defecto, será en en modo depuracion.
 	}//fin de método
 	private void log(String mensaje,int tipo){
+	    mensaje = "MONITOR: "+mensaje;
 	    Utils.log(mensaje,tipo);
 	}
 }

@@ -9,16 +9,34 @@ import java.net.*;
  */
 public class Data_crawler {
     
-	private HashSet<URL> recursos_visitados = (HashSet<URL>)Collections.synchronizedSet(new HashSet<URL>());
+	private Set<URL> recursos_visitados = Collections.synchronizedSet(new HashSet<URL>());
 	//almacenar‡ los url's ya visitadas.
 	
-	private LinkedList<URL> por_procesar= (LinkedList<URL>)Collections.synchronizedList(new LinkedList<URL>());
+	private List<URL> por_procesar= Collections.synchronizedList(new LinkedList<URL>());
 	//lista compartida de url's por procesar.
-	private HashSet<String> mail_list = (HashSet<String>)Collections.synchronizedSet(new HashSet<String>());
+	private Set<String> mail_list = Collections.synchronizedSet(new HashSet<String>());
 	//almacenar‡ la lista de mails
 	
 	private boolean finalizar=false;
 	//Variable de control para la finalizaci—n de forma controlada de todos los threads.
+	
+	private static String nombrelog="informe.log";
+	private static boolean limite_tiempo ;
+	
+	public void set_nombrelog(String n){
+	    nombrelog=n;
+	}
+	public void set_limite_tiempo(boolean b){
+	    limite_tiempo=b;
+	}
+	public String get_nombrelog(){
+	    return nombrelog;
+	}
+	public boolean get_limite_tiempo(){
+	    return limite_tiempo;
+	}
+	
+	
 	
 	/*
 	 * Constructor por defecto
@@ -27,10 +45,6 @@ public class Data_crawler {
 	Data_crawler (){
 	    //Constructor vac’o. Ya le iremos a–adiendo los datos.
 	}
-	
-	/*
-	 * 
-	 */
 	
 	public void set_finalizar(boolean b){
 	    finalizar = b;
@@ -51,7 +65,7 @@ public class Data_crawler {
 	 * Devuelve la lista de mails
 	 */
 	public HashSet<String> get_mails(){
-	    return mail_list;
+	    return new HashSet<String>(mail_list);
 	    
 	}//fin de get_mails
 	/*
@@ -81,7 +95,7 @@ public class Data_crawler {
 	 * Devuelve una direcci—n y/o recurso a procesar.
 	 */
 	public URL get_toprocess(){
-	    return por_procesar.removeFirst();
+	    return por_procesar.remove(0);
 	}//fin de get_toprocess
 	
 	/*

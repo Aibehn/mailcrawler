@@ -16,6 +16,12 @@ public class Utils {
 	private static final int WARNING = 1;
 	private static final int DEBUG = 0;
     	
+	
+	
+	public static void set_log(String nombre){
+	    nombrelog=nombre;
+	}//finde de set_log
+	
     	/*
 	 * Extraida de internet: Chequea si la web es accesible para robots
 	 * retorna true si es posible
@@ -23,8 +29,8 @@ public class Utils {
 	 * Puede quitarse si se quiere mejorar el funcionamiento, no es indispensable.
 	 */
 	public static boolean robotSafe(URL url) {
-	    
-	    log("Comprobamos si la URL es accesible para robots");
+	    return true;
+	    /*log("Comprobamos si la URL es accesible para robots");
 	    String strHost = url.getHost();
 
 	    // form URL of the robots.txt file
@@ -75,8 +81,20 @@ public class Utils {
 			return false;
 	    }
 	    
-	    return true;
-	    }//fin de método robotsafe
+	    return true;*/
+	}//fin de método robotsafe
+	
+	
+	
+	/*
+	 * GetURL, extrae href
+	 */
+	
+	public static LinkedList<String> getURL(String strURL,StringBuffer contenedor)throws Exception{
+	    
+	    GetURL nuevoGetURL=new GetURL(contenedor,strURL);
+	    return nuevoGetURL.returnURL();
+	}
 	
 	/* metodo SacaMailTo
 	 * El metodo sacar,que pasandole como parametro el 
@@ -182,8 +200,9 @@ public class Utils {
 	 * log() será una clase definida para la depuración de errores. Guardará en un archivo toda la información relevante.
 	 * A la hora de ejecutar con límite de tiempo, los mensajes con prioridad DEBUG, serán ignorados.
 	 */
-	private static void log(String mensaje){
+	public static void log(String mensaje){
 	    if(!limite_tiempo){
+	    //System.out.println(mensaje);
 		log(mensaje,DEBUG); //por defecto, será en en modo depuracion.
 	    }
 	}//fin de método
