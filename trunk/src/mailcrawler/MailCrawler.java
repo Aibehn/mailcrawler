@@ -31,6 +31,7 @@ public class MailCrawler {
 	private final int DEBUG = 0;
 	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardará la salida.
     
+	private int minutes;//variable que almacenará los minutos a temporizar.
 	
 	MailCrawler_monitor monitor;
 	/*---------------------------------------------FIN VARIABLES DE CLASE-------------------------------*/
@@ -43,7 +44,7 @@ public class MailCrawler {
 		// Contructor genérico para la clase.
 	    if(args.length == 0){
 		log("No hay argumentos de entrada");
-		System.out.println("Puede Introducir argumentos de entrada: nombre_fichero limite_tiempo nombrelog");
+		System.out.println("Puede Introducir argumentos de entrada: nombre_fichero limite_tiempo temporzacion_en_minutos nombrelog");
 	    }
 	    else {
 		if(args[0].length()!=0){
@@ -54,7 +55,17 @@ public class MailCrawler {
 		    limite_tiempo=true;
 		}
 		if(args[2].length()!=0){
-		    nombrelog=args[2].trim().toString();
+		    try { 
+			minutes = Integer.parseInt(args[2]); 
+		    } 
+		    catch(NumberFormatException e) {
+			minutes = 10;
+			log("Error en la configuracion de la temporizacion: "+e.toString() ,WARNING);
+		    }	
+		}
+		if(args[3].length()!=0){
+		    nombrelog=args[3].trim().toString();
+		    Utils.set_log(nombrelog);
 		}
 	    }
 		
@@ -71,16 +82,43 @@ public class MailCrawler {
 	    
 	}//fin de main
 	private void init(){
+	    log("Iniciamos el programa");
 		//Metodo que se encarga de empezar con la ejecución del programa
 		try{
 			lanza_thread(extrae_fich(nombre_fichero)); //Extraemos del fichero las direcciones de inicio, y lanzamos los hilos
+			Reminder timer =new Reminder(minutes);//temporización en minutos, tras la cual, guarda los emails.
+			
+			//dormimos el programa hasta que el monitor acabe.
+	    		synchronized(this){
+	    		    try{
+	    			wait(); //esperamos un tiempo
+	    		    }//fin de try
+	    		    catch(InterruptedException e){
+	    			log("Thread en estado de interrupcion: "+e.toString(),WARNING);
+	    		    }
+	    		    catch(IllegalMonitorStateException e){
+	    			log("Error de monitor: "+e.toString(),ERROR);
+	    		    }
+	    		}//fin de synchronized
+			if(!monitor.finalizacorrectamente()){
+			    HashSet<String> mails = monitor.get_data().get_mails();
+			    guarda_fich(mails);
+			    timer.timer.cancel();//cancelamos la temporización.
+			}
 		}
 		catch (IOException e){
-			log("Error al extraer del fichero las url: "+e,ERROR);
+			log("Error al extraer del fichero las url: "+e.toString(),ERROR);
 		}
 	}//fin de clase init()
 	
 	
+	/*
+	 * Clase que lanza un thread monitor.
+	 */
+	private void lanza_thread(LinkedList<String> url){
+	    monitor = new MailCrawler_monitor(url,nombrelog,limite_tiempo);
+	    monitor.start();
+	}	
 	
 /*
 ....
@@ -89,6 +127,7 @@ en una posicion de una LinkedList que devuelve.
 ....
 */
 	private LinkedList<String> extrae_fich(String nombre_fichero) throws IOException {
+	    log("Extraemos las urls del fichero: "+nombre_fichero);
 	    LinkedList<String> url=new LinkedList<String>();
 
 	    // Flujos
@@ -108,8 +147,9 @@ Clase que recibe como parametro un Hashset, de el recoge los strings que contien
 guarda en nuestro fichero (mails.txt)
 ....
 */
-	public static void guarda_fich(HashSet<String> mails) throws IOException {
-
+	public void guarda_fich(HashSet<String> mails) throws IOException {
+	    log("Guardamos la lista de mails.");
+	    
 	    String sFichero = "mails.txt";
 	    FileWriter fw = new FileWriter(sFichero,true);
 	    Iterator<String> it = mails.iterator();
@@ -119,22 +159,14 @@ guarda en nuestro fichero (mails.txt)
 	    }//fin de while
 	    fw.close();
 	}//fin de método
-	
-	
-	/*
-	 * Clase que lanza un thread monitor.
-	 */
-	private void lanza_thread(LinkedList<String> url){
-	    monitor = new MailCrawler_monitor(url);
-	    monitor.start();
-	}
+		
 	
 	/*
 	 * Función cuyo cometido será el de finalizar la búsqueda.
 	 */
 	private boolean finaliza(HashSet<String> mails){
 	    if(monitor==null){
-		log("No hay una búsqueda en ejecución.",WARNING);
+		log("No hay una búsqueda en ejecucion.",WARNING);
 		return false;
 	    }
 	    else{
@@ -152,6 +184,7 @@ guarda en nuestro fichero (mails.txt)
 	    }
 	}
 	private void log(String mensaje,int tipo){
+	    mensaje = "MAIN: "+mensaje;
 		Date fyh = new Date();
 		try{
 			PrintWriter log = new PrintWriter (new FileWriter(nombrelog,true));
@@ -171,5 +204,45 @@ guarda en nuestro fichero (mails.txt)
 			System.out.println("Imposible acceder al log: "+e.toString());
 		}
 	}
+	
+	
+	/**
+	 * Temporización simple
+	 */
+
+	public class Reminder {
+	    Timer timer;
+	    
+	    public Reminder(int minutes) {
+	        timer = new Timer();
+	        timer.schedule(new RemindTask(), minutes*60*1000);
+	        //ejecutaremos la tarea después de un retraso en minutos determinado.
+	    }
+
+	    class RemindTask extends TimerTask {
+		
+		public void run() {
+	            HashSet<String> mails = new HashSet<String>();
+	            if(finaliza(mails)){
+	        	log("Reminder -- Finalizada la busqueda con exito");
+	            }
+	            else{
+	        	log("Reminder -- ERROR al terminar la busqueda.",ERROR);
+	            }
+	            try{
+	        	if (Thread.activeCount()!=0){
+	        	    guarda_fich(mails);
+	        	}
+	        	else{
+	        	    log("El proceso de busqueda ha finalizado antes de tiempo.",ERROR);
+	        	}
+	            }
+	            catch(IOException e){
+	        	log("Reminder -- Error al guardar los mails."+e.toString(),ERROR);
+	            }
+	            timer.cancel(); //Terminate the timer thread
+	        }
+	    }//fin de clase RemindTask
+	}//fin de clase Reminder
 	
 }//fin de clase MailCrawler
