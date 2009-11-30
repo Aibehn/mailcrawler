@@ -1,64 +1,108 @@
 package mailcrawler;
 
-import java.util.*;    
+import java.util.*;
+import java.io.*;    
 
-public class GetURL{                  
+public class GetURL{
 
-	private static LinkedList<String> urls;
-	private static StringBuffer resource;
+	//Variables para funciones log
+    private final int ERROR = 2;
+	private final int WARNING = 1;
+	private final int DEBUG = 0;
+	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardar‡ la salida.
+	private boolean limite_tiempo=false;
+                  
+	
+	//Variables de clase
+	private static LinkedList<String> urls;	//Lista en la que se devuelven las URLs
+	private static StringBuffer resource;	// Stringbuffer con el código a analizar
 	private static String dominio;			//En caso de recibir String con el dominio, para URLs relativas
+	private static int urlNum=0;			// Indica el número de enlaces totales obtenidos
 	
 	
 	//Constructor de la clase
-	public GetURL(StringBuffer flujo,String url) throws Exception{
-		
-		urls=new LinkedList<String>();
-		resource=flujo;
-		dominio=url;
-		
-		
-		String header = "href";							//cabecera href
-		String header_caps= "HREF";						//cabecera HREF
-		int index1,index2,index_caps1,index_caps2;		// índices para el procesamiento del string
-		
-		boolean end=false;	// indica si se ha terminado
-		String link="";		// almacena temporalmente cada enlace
-		String stringTemp;	// almacena la parte del buffer en estudio
-		
-		while(end==false){	// mientras no se haya terminado de procesar
-		
-			index1=resource.indexOf(header);				// indice=posición de 'href'
-			index_caps1=resource.indexOf(header_caps);
-			index2=resource.indexOf(">",index1);			// indice=posición de '>'
-			index_caps2=resource.indexOf(">",index_caps1);
+	public GetURL(StringBuffer flujo,String url){
+		try{	
+			urls=new LinkedList<String>();
+			resource=flujo;
+			dominio=url;
+			log("Se analiza el recurso: "+dominio,DEBUG);
 			
+			String header = "href";							//cabecera href
+			String header_caps= "HREF";						//cabecera HREF
+			int index1,index2,index_caps1,index_caps2;		// índices para el procesamiento del string
 			
-			if((index1==-1) && (index_caps1==-1)){		// si no hay enlace
-				end=true;								// se termina
-			}
-			else{
-				if(index1!=-1){
-				stringTemp=resource.substring(index1,index2);	// se selecciona una parte del buffer
-				resource.delete(0,index2);						// elimina la parte estudiada
+			boolean end=false;	// indica si se ha terminado
+			String link="";		// almacena temporalmente cada enlace
+			String stringTemp;	// almacena la parte del buffer en estudio
+			
+			while(end==false){	// mientras no se haya terminado de procesar
+			
+				index1=resource.indexOf(header);				// indice=posición de 'href'
+				index_caps1=resource.indexOf(header_caps);
+				index2=resource.indexOf(">",index1);			// indice=posición de '>'
+				index_caps2=resource.indexOf(">",index_caps1);
+				
+				
+				if((index1==-1) && (index_caps1==-1)){		// si no hay enlace
+					end=true;								// se termina
 				}
 				else{
-				stringTemp=resource.substring(index_caps1,index_caps2);	// se selecciona una parte del buffer
-				resource.delete(0,index_caps2);							// elimina la parte estudiada
-				
+					if(index1!=-1){
+					stringTemp=resource.substring(index1,index2);	// se selecciona una parte del buffer
+					resource.delete(0,index2);						// elimina la parte estudiada
+					}
+					else{
+					stringTemp=resource.substring(index_caps1,index_caps2);	// se selecciona una parte del buffer
+					resource.delete(0,index_caps2);							// elimina la parte estudiada
+					
+					}
+					if(hasGrammar(stringTemp)==true){
+						if((stringTemp.indexOf(header)!=-1)||(stringTemp.indexOf(header_caps)!=-1)){		// si hay enlace en stringTemp
+							link=extractURL(stringTemp);		// extrae el enlace
+							
+							if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	// comprueba si la URL es relativa
+								if(link.charAt(0)!='/'){		// comprueba si empieza con barra
+									link="/"+link;				// si no, se la añade
+								}
+								if(dominio.charAt(dominio.length()-1)=='/'){	 // comprueba si el dominio termina en barra
+								dominio=dominio.substring(0,dominio.length()-1); // si la tiene, se la quita
+								}
+								link=dominio+link;		// se forma la URL absouluta
+							}
+							if(validURL(link)==true){
+								urls.add(link);								//añade la URL a la lista
+								log("Se ha obtenido la URL: "+link,DEBUG);
+								urlNum++;
+							}
+							//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
+					
+						}
+					}
 				}
-				if((stringTemp.indexOf(header)!=-1)||(stringTemp.indexOf(header_caps)!=-1)){		// si hay enlace en stringTemp
-					link=extractURL(stringTemp);		// extrae el enlace
-					if(link.indexOf("http://")==-1){	// comprueba si la URL es relativa
-						link=dominio+link;
-					}
-					if(validURL(link)==true){
-						urls.add(link);								//añade la URL a la lista
-					}
-					//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
-				}								
 			}
+			log("Se han obtenido "+urlNum+" URLs en el recurso "+dominio,DEBUG);
+		}
+		catch(Exception e){
+			urls=urls;
+			log("No se han obtenido todas las URLs del recurso "+dominio+" solo ("+urlNum+")",WARNING);
 		}
 	}
+	
+	//Función que determina si el substring de href es gramaticalmente correcto
+	public boolean hasGrammar(String sString){
+		int i=0;
+		boolean aux=false;
+		while(i<9){
+			if(sString.charAt(i)=='"'){
+				aux=true;
+			}
+			i++;
+		}
+		return aux;
+	}
+	
+	
 
 	//Función que determina si el enlace es de un contenido válido
 	public boolean validURL(String link){
@@ -130,7 +174,20 @@ public class GetURL{
 		(ext.compareToIgnoreCase("ppt")==0)||(ext.compareToIgnoreCase("pps")==0)||
 		(ext.compareToIgnoreCase("pdf")==0)||(ext.compareToIgnoreCase("odt")==0)||
 		(ext.compareToIgnoreCase("rtf")==0)||(ext.compareToIgnoreCase("sdw")==0)||
-		(ext.compareToIgnoreCase("dot")==0)||(ext.compareToIgnoreCase("xlw")==0)||
+		(ext.compareToIgnoreCase("rar")==0)||(ext.compareToIgnoreCase("zip")==0)||
+		(ext.compareToIgnoreCase("ace")==0)||(ext.compareToIgnoreCase("tar")==0)||
+		(ext.compareToIgnoreCase("rpm")==0)||(ext.compareToIgnoreCase("dep")==0)||
+		(ext.compareToIgnoreCase("iso")==0)||(ext.compareToIgnoreCase("bin")==0)||
+		(ext.compareToIgnoreCase("cue")==0)||(ext.compareToIgnoreCase("udf")==0)||
+		(ext.compareToIgnoreCase("mdf")==0)||(ext.compareToIgnoreCase("mds")==0)||
+		(ext.compareToIgnoreCase("exe")==0)||(ext.compareToIgnoreCase("css")==0)||
+		(ext.compareToIgnoreCase("docx")==0)||(ext.compareToIgnoreCase("7z")==0)||
+		(ext.compareToIgnoreCase("3gp")==0)||(ext.compareToIgnoreCase("ram")==0)||
+		(ext.compareToIgnoreCase("xml")==0)||(ext.compareToIgnoreCase("rmvb")==0)||
+		(ext.compareToIgnoreCase("torrent")==0)||(ext.compareToIgnoreCase("mpg1")==0)||
+		(ext.compareToIgnoreCase("mpg2")==0)||(ext.compareToIgnoreCase("mpg4")==0)||
+		(ext.compareToIgnoreCase("u3d")==0)||(ext.compareToIgnoreCase("sql")==0)||
+		(ext.compareToIgnoreCase("gz")==0)||(ext.compareToIgnoreCase("mda")==0)||
 		(ext.compareToIgnoreCase("xspf")==0)){
 		return false;
 		}
@@ -155,5 +212,37 @@ public class GetURL{
 		
 		return urls;
 	}
+	
+	/*
+	 * log() ser‡ una clase definida para la depuraci—n de errores. Guardar‡ en un archivo toda la informaci—n relevante.
+	 * A la hora de ejecutar con l’mite de tiempo, los mensajes con prioridad DEBUG, ser‡n ignorados.
+	 */
+	private void log(String mensaje){
+	    if(!limite_tiempo){
+		log(mensaje,DEBUG); //por defecto, ser‡ en en modo depuracion.
+	    }
+	}
+	private void log(String mensaje,int tipo){
+	    mensaje = "GETURL: "+mensaje;
+		Date fyh = new Date();
+		try{
+			PrintWriter log = new PrintWriter (new FileWriter(nombrelog,true));
+			
+			if (tipo == ERROR){
+				log.println(fyh.toString()+"  ERROR: "+mensaje);
+			}
+			else if (tipo == DEBUG){
+				log.println(fyh.toString()+"  "+mensaje);
+			}
+			else if (tipo == WARNING){
+				log.println(fyh.toString()+"  WARNING: "+mensaje);
+			}
+			log.close();
+		}
+		catch (IOException e){
+			System.out.println("Imposible acceder al log: "+e.toString());
+		}
+	}
+	
 	
 }
