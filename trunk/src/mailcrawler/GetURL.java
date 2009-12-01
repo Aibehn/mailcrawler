@@ -17,7 +17,6 @@ public class GetURL{
 	private static LinkedList<String> urls;	//Lista en la que se devuelven las URLs
 	private static StringBuffer resource;	// Stringbuffer con el código a analizar
 	private static String dominio;			//En caso de recibir String con el dominio, para URLs relativas
-	private static int urlNum=0;			// Indica el número de enlaces totales obtenidos
 	
 	
 	//Constructor de la clase
@@ -26,7 +25,7 @@ public class GetURL{
 			urls=new LinkedList<String>();
 			resource=flujo;
 			dominio=url;
-			log("Se analiza el recurso: "+dominio,DEBUG);
+			log("Se analiza el recurso: "+dominio,WARNING);
 			
 			String header = "href";							//cabecera href
 			String header_caps= "HREF";						//cabecera HREF
@@ -57,57 +56,71 @@ public class GetURL{
 					resource.delete(0,index_caps2);							// elimina la parte estudiada
 					
 					}
-					if(hasGrammar(stringTemp)==true){
-						if((stringTemp.indexOf(header)!=-1)||(stringTemp.indexOf(header_caps)!=-1)){		// si hay enlace en stringTemp
-							link=extractURL(stringTemp);		// extrae el enlace
-							
-							if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	// comprueba si la URL es relativa
-								if(link.charAt(0)!='/'){		// comprueba si empieza con barra
-									link="/"+link;				// si no, se la añade
+					try{
+						if(hasGrammar(stringTemp)==true){
+							if((stringTemp.indexOf(header)!=-1)||(stringTemp.indexOf(header_caps)!=-1)){		// si hay enlace en stringTemp
+								link=extractURL(stringTemp);		// extrae el enlace
+								
+								if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	// comprueba si la URL es relativa
+									if(link.charAt(0)!='/'){		// comprueba si empieza con barra
+										link="/"+link;				// si no, se la añade
+									}
+									if(dominio.charAt(dominio.length()-1)=='/'){	 // comprueba si el dominio termina en barra
+									dominio=dominio.substring(0,dominio.length()-1); // si la tiene, se la quita
+									}
+									link=dominio+link;		// se forma la URL absouluta
 								}
-								if(dominio.charAt(dominio.length()-1)=='/'){	 // comprueba si el dominio termina en barra
-								dominio=dominio.substring(0,dominio.length()-1); // si la tiene, se la quita
+								if(validURL(link)==true){
+									urls.add(link);								//añade la URL a la lista
+									log("Se ha obtenido la URL: "+link,DEBUG);
 								}
-								link=dominio+link;		// se forma la URL absouluta
+								//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
 							}
-							if(validURL(link)==true){
-								urls.add(link);								//añade la URL a la lista
-								log("Se ha obtenido la URL: "+link,DEBUG);
-								urlNum++;
-							}
-							//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
-					
 						}
+					}
+					catch(Exception e){
+						log("No se ha podido procesar un enlace en el recurso "+dominio,WARNING);
 					}
 				}
 			}
-			log("Se han obtenido "+urlNum+" URLs en el recurso "+dominio,DEBUG);
+			log("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio,WARNING);
 		}
 		catch(Exception e){
 			urls=urls;
-			log("No se han obtenido todas las URLs del recurso "+dominio+" solo ("+urlNum+")",WARNING);
+			log("No se ha terminado de analizar el recurso "+dominio+". "+urls.size()+" URLs obtenidas",ERROR);
 		}
 	}
 	
-	//Función que determina si el substring de href es gramaticalmente correcto
+	//Función que determina si el substring de href responde a la estructura esperada
 	public boolean hasGrammar(String sString){
 		int i=0;
 		boolean aux=false;
-		while(i<9){
-			if(sString.charAt(i)=='"'){
+		while(i<9){								//Para los 9 primeros carácteres desde la h de href
+			if(sString.charAt(i)=='"'){			//Busca una comilla doble
 				aux=true;
 			}
 			i++;
 		}
 		return aux;
 	}
-	
-	
+
+		
+	//Función que extrae el enlace de un string
+	public String extractURL(String stringTemp) throws Exception {
+		
+		String del="\"";											//Separación entre tokens
+		String linkDef;												//Almacena el enlace a devolver
+		StringTokenizer tokens=new StringTokenizer(stringTemp,del);	//StringTokenizer entre las comillas
+		linkDef=tokens.nextToken();									//Extrae el primer token
+		linkDef=tokens.nextToken();									//Extrae el segundo token (el enlace)
+		
+		return linkDef;
+	}    
 
 	//Función que determina si el enlace es de un contenido válido
 	public boolean validURL(String link){
-		int dotIndex=link.lastIndexOf(".");
-		String ext=link.substring(dotIndex+1);
+		int dotIndex=link.lastIndexOf(".");		//Busca la posición del último punto
+		String ext=link.substring(dotIndex+1);	//Extrae la extensión
 		if((ext.compareToIgnoreCase("ani")==0)||(ext.compareToIgnoreCase("b3d")==0)||
 		(ext.compareToIgnoreCase("bmp")==0)||(ext.compareToIgnoreCase("dib")==0)||
 		(ext.compareToIgnoreCase("cam")==0)||(ext.compareToIgnoreCase("clp")==0)||
@@ -188,25 +201,13 @@ public class GetURL{
 		(ext.compareToIgnoreCase("mpg2")==0)||(ext.compareToIgnoreCase("mpg4")==0)||
 		(ext.compareToIgnoreCase("u3d")==0)||(ext.compareToIgnoreCase("sql")==0)||
 		(ext.compareToIgnoreCase("gz")==0)||(ext.compareToIgnoreCase("mda")==0)||
-		(ext.compareToIgnoreCase("xspf")==0)){
+		(ext.compareToIgnoreCase("nrg")==0)||(ext.compareToIgnoreCase("tex")==0)||
+		(ext.compareToIgnoreCase("xspf")==0)){	//Se compara la extensión
 		return false;
 		}
 		return true;
 	}
-		
-	
-	//Función que extrae el enlace de un string
-	public String extractURL(String stringTemp) throws Exception {
-		
-		String del="\"";											//Separación entre tokens
-		String linkDef;												//Almacena el enlace a devolver
-		StringTokenizer tokens=new StringTokenizer(stringTemp,del);	//StringTokenizer entre las comillas
-		linkDef=tokens.nextToken();									//Extrae el primer token
-		linkDef=tokens.nextToken();									//Extrae el segundo token (el enlace)
-		
-		return linkDef;
-	}               
-	
+		           
 	//Método que devuelve la estructura de datos con los enlaces
 	public LinkedList<String> returnURL() throws Exception{
 		
