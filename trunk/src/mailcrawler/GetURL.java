@@ -1,31 +1,30 @@
 package mailcrawler;
 
-import java.util.*;
-import java.io.*;    
+import java.util.*;    
+import java.net.*;
 
 public class GetURL{
 
 	//Variables para funciones log
-    private final int ERROR = 2;
+    	private final int ERROR = 2;
 	private final int WARNING = 1;
 	private final int DEBUG = 0;
-	private String nombrelog = "informe.log"; //Nombre por defecto del log donde se guardar‡ la salida.
 	private boolean limite_tiempo=false;
                   
 	
 	//Variables de clase
-	private static LinkedList<String> urls;	//Lista en la que se devuelven las URLs
-	private static StringBuffer resource;	// Stringbuffer con el código a analizar
-	private static String dominio;			//En caso de recibir String con el dominio, para URLs relativas
+	private LinkedList<String> urls;	//Lista en la que se devuelven las URLs
+	private StringBuffer resource;	// Stringbuffer con el código a analizar
+	private URL dominio;			//En caso de recibir String con el dominio, para URLs relativas
 	
 	
 	//Constructor de la clase
-	public GetURL(StringBuffer flujo,String url){
+	public GetURL(StringBuffer flujo,URL url){
 		try{	
 			urls=new LinkedList<String>();
 			resource=flujo;
 			dominio=url;
-			log("Se analiza el recurso: "+dominio,WARNING);
+			log("Se analiza el recurso: "+dominio.toString());
 			
 			String header = "href";							//cabecera href
 			String header_caps= "HREF";						//cabecera HREF
@@ -62,17 +61,24 @@ public class GetURL{
 								link=extractURL(stringTemp);		// extrae el enlace
 								
 								if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	// comprueba si la URL es relativa
-									if(link.charAt(0)!='/'){		// comprueba si empieza con barra
+									/*if(link.charAt(0)!='/'){		// comprueba si empieza con barra
 										link="/"+link;				// si no, se la añade
 									}
 									if(dominio.charAt(dominio.length()-1)=='/'){	 // comprueba si el dominio termina en barra
 									dominio=dominio.substring(0,dominio.length()-1); // si la tiene, se la quita
 									}
-									link=dominio+link;		// se forma la URL absouluta
+									link=dominio+link;		// se forma la URL absouluta*/
+									try{
+									    URI uri = (dominio.toURI()).resolve(URI.create(link));
+									    link=uri.toString();
+									}//fin de try
+									catch(URISyntaxException e){
+									   log("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link,WARNING);
+									}//fin de catch
 								}
 								if(validURL(link)==true){
 									urls.add(link);								//añade la URL a la lista
-									log("Se ha obtenido la URL: "+link,DEBUG);
+									log("Se ha obtenido la URL: "+link);
 								}
 								//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
 							}
@@ -86,7 +92,7 @@ public class GetURL{
 			log("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio,WARNING);
 		}
 		catch(Exception e){
-			urls=urls;
+			//urls=urls;
 			log("No se ha terminado de analizar el recurso "+dominio+". "+urls.size()+" URLs obtenidas",ERROR);
 		}
 	}
@@ -225,25 +231,8 @@ public class GetURL{
 	}
 	private void log(String mensaje,int tipo){
 	    mensaje = "GETURL: "+mensaje;
-		Date fyh = new Date();
-		try{
-			PrintWriter log = new PrintWriter (new FileWriter(nombrelog,true));
-			
-			if (tipo == ERROR){
-				log.println(fyh.toString()+"  ERROR: "+mensaje);
-			}
-			else if (tipo == DEBUG){
-				log.println(fyh.toString()+"  "+mensaje);
-			}
-			else if (tipo == WARNING){
-				log.println(fyh.toString()+"  WARNING: "+mensaje);
-			}
-			log.close();
-		}
-		catch (IOException e){
-			System.out.println("Imposible acceder al log: "+e.toString());
-		}
-	}
+	    Utils.log(mensaje, tipo);
+	}//fin de log
 	
 	
 }
