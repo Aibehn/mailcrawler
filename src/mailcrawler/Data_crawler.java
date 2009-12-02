@@ -1,7 +1,6 @@
 package mailcrawler;
 
 import java.util.*;
-import java.net.*;
 
 
 /*
@@ -9,10 +8,10 @@ import java.net.*;
  */
 public class Data_crawler {
     
-	private Set<URL> recursos_visitados = Collections.synchronizedSet(new HashSet<URL>());
+	private Set<String> recursos_visitados = Collections.synchronizedSet(new HashSet<String>());
 	//almacenar‡ los url's ya visitadas.
 	
-	private List<URL> por_procesar= Collections.synchronizedList(new LinkedList<URL>());
+	private List<String> por_procesar= Collections.synchronizedList(new LinkedList<String>());
 	//lista compartida de url's por procesar.
 	private Set<String> mail_list = Collections.synchronizedSet(new HashSet<String>());
 	//almacenar‡ la lista de mails
@@ -71,13 +70,13 @@ public class Data_crawler {
 	/*
 	 * A–ade la lista de urls encontradas a una lista por procesar.
 	 */
-	public void add_toprocess(LinkedList<URL> list){
-	    ListIterator<URL> it = list.listIterator();
+	public void add_toprocess(LinkedList<String> list){
+	    ListIterator<String> it = list.listIterator();
 	    while(it.hasNext()){
-		URL url = it.next();
-		if(!recursos_visitados.contains(url)){
+		String strURL = it.next();
+		if(!recursos_visitados.contains(strURL)){
 		    //si el recurso no ha sido visitado
-		    por_procesar.add(url);
+		    por_procesar.add(strURL);
 		}//fin de if
 	    }//fin de while
 	}//fin de add_toprocess
@@ -85,7 +84,7 @@ public class Data_crawler {
 	/*
 	 * A–ade una œnica URL a la lista de procesado
 	 */
-	public void addone_toprocess(URL url){
+	public void addone_toprocess(String url){
 	    if(!recursos_visitados.contains(url)){
 		por_procesar.add(url);
 	    }//fin de if
@@ -94,14 +93,14 @@ public class Data_crawler {
 	/*
 	 * Devuelve una direcci—n y/o recurso a procesar.
 	 */
-	public URL get_toprocess(){
+	public String get_toprocess(){
 	    return por_procesar.remove(0);
 	}//fin de get_toprocess
 	
 	/*
 	 * A–ade una url visitada a la lista
 	 */
-	public void add_visited(URL url){
+	public void add_visited(String url){
 	  recursos_visitados.add(url); 
 	}//fin add_visited	
 	

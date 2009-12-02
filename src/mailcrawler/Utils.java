@@ -29,8 +29,7 @@ public class Utils {
 	 * Puede quitarse si se quiere mejorar el funcionamiento, no es indispensable.
 	 */
 	public static boolean robotSafe(URL url) {
-	    return true;
-	    /*log("Comprobamos si la URL es accesible para robots");
+	    log("Comprobamos si la URL es accesible para robots");
 	    String strHost = url.getHost();
 
 	    // form URL of the robots.txt file
@@ -81,7 +80,7 @@ public class Utils {
 			return false;
 	    }
 	    
-	    return true;*/
+	    return true;
 	}//fin de método robotsafe
 	
 	
@@ -90,9 +89,9 @@ public class Utils {
 	 * GetURL, extrae href
 	 */
 	
-	public static LinkedList<String> getURL(String strURL,StringBuffer contenedor)throws Exception{
+	public static LinkedList<String> getURL(URL url,StringBuffer contenedor)throws Exception{
 	    
-	    GetURL nuevoGetURL=new GetURL(contenedor,strURL);
+	    GetURL nuevoGetURL=new GetURL(contenedor,url);
 	    return nuevoGetURL.returnURL();
 	}
 	

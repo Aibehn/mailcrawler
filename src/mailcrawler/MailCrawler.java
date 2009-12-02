@@ -82,6 +82,7 @@ public class MailCrawler {
 	    
 	}//fin de main
 	private void init(){
+	   
 	    log("Iniciamos el programa");
 		//Metodo que se encarga de empezar con la ejecuci—n del programa
 		try{
@@ -165,7 +166,7 @@ guarda en nuestro fichero (mails.txt)
 	 * Funci—n cuyo cometido ser‡ el de finalizar la bœsqueda.
 	 */
 	private boolean finaliza(HashSet<String> mails){
-	    if(monitor==null){
+	    if(!monitor.isAlive()){
 		log("No hay una bœsqueda en ejecucion.",WARNING);
 		return false;
 	    }
