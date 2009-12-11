@@ -89,6 +89,7 @@ public class MailCrawler {
 			lanza_thread(extrae_fich(nombre_fichero)); //Extraemos del fichero las direcciones de inicio, y lanzamos los hilos
 			Reminder timer =new Reminder(minutes);//temporizaci—n en minutos, tras la cual, guarda los emails.
 			
+			do{
 			//dormimos el programa hasta que el monitor acabe.
 	    		synchronized(this){
 	    		    try{
@@ -102,14 +103,25 @@ public class MailCrawler {
 	    		    }
 	    		}//fin de synchronized
 			if(!monitor.finalizacorrectamente()){
+			    //si el monitor ha acabado de forma inexperada guardamos los emails encontrados
+			    log("La Bœsqueda ha terminado de manera inexperada. Guardamos los mails encontrados.",WARNING);
 			    HashSet<String> mails = monitor.get_data().get_mails();
 			    guarda_fich(mails);
 			    timer.timer.cancel();//cancelamos la temporizaci—n.
 			}
-		}
+			}//fin de do-while
+			while(monitor.isAlive());
+		}//fin de try
+		/*catch(InterruptedException e){
+			log("El metodo ha sido interrumpido mientras esperaba una notificaci—n"+e.toString());
+		}*/
 		catch (IOException e){
 			log("Error al extraer del fichero las url: "+e.toString(),ERROR);
 		}
+		catch(IllegalMonitorStateException e){
+			log("El objeto no es duenyo de su objeto monitor: "+e.toString());
+		}
+		
 	}//fin de clase init()
 	
 	
@@ -167,7 +179,8 @@ guarda en nuestro fichero (mails.txt)
 	 */
 	private boolean finaliza(HashSet<String> mails){
 	    if(!monitor.isAlive()){
-		log("No hay una bœsqueda en ejecucion.",WARNING);
+		log("No hay una busqueda en ejecucion.",WARNING);
+		monitor.finalizar(mails);//intentamos finalizar los threads hijos si hay alguno en ejecucion
 		return false;
 	    }
 	    else{
@@ -231,17 +244,14 @@ guarda en nuestro fichero (mails.txt)
 	        	log("Reminder -- ERROR al terminar la busqueda.",ERROR);
 	            }
 	            try{
-	        	if (Thread.activeCount()!=0){
-	        	    guarda_fich(mails);
-	        	}
-	        	else{
-	        	    log("El proceso de busqueda ha finalizado antes de tiempo.",ERROR);
-	        	}
+	        	guarda_fich(mails);//intentamos guardar los mails
 	            }
 	            catch(IOException e){
 	        	log("Reminder -- Error al guardar los mails."+e.toString(),ERROR);
 	            }
 	            timer.cancel(); //Terminate the timer thread
+	            log("Fin de ejecucion del programa");
+	            System.exit(0);
 	        }
 	    }//fin de clase RemindTask
 	}//fin de clase Reminder

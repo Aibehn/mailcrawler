@@ -19,7 +19,8 @@ public class MailCrawler_thread extends Thread {
 	private static boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
     	//establecido, limite_tiempo ser’a true, para mejorar un poco su rendimiento.
 		
-    	private static boolean robots=false; //establece si se ejecutar‡ la directiva para comprobar si una url es accesible
+    	private static final int timeout = 2000; //timeout para las conexiones
+	private static boolean robots=false; //establece si se ejecutar‡ la directiva para comprobar si una url es accesible
     	// para robots.
 	
 	private LinkedList<String> lista_mails = new LinkedList<String>(); 
@@ -86,9 +87,9 @@ public class MailCrawler_thread extends Thread {
 		    data.add_toprocess(lista_urls);
 		    
 		    data.add_mails(lista_mails);
-		    if(!data.get_mails().isEmpty()&& !lista_mails.isEmpty())
+		    /*if(!data.get_mails().isEmpty()&& !lista_mails.isEmpty())
 			System.out.println(data.get_mails().toString());
-
+		     */
 		}//fin de try
 		
 		catch (MalformedURLException e) {
@@ -109,7 +110,7 @@ public class MailCrawler_thread extends Thread {
 	    log("Finalizacion del thread.");
 	    try{
 		synchronized(this){
-		    log("Nombre del Monitor: "+monitor.getName());
+		    //log("Nombre del Monitor: "+monitor.getName());
 		    if(monitor.isAlive())
 			monitor.notify();//notificamos que el hilo ha finalizado.
 		}//fin de synchronized
@@ -147,6 +148,7 @@ public class MailCrawler_thread extends Thread {
 		URLConnection urlConnection = url.openConnection();
 
 		urlConnection.setAllowUserInteraction(false);
+		urlConnection.setConnectTimeout(timeout);
 
 		InputStream urlStream = url.openStream();
 		String type = URLConnection.guessContentTypeFromStream(urlStream);
@@ -156,9 +158,9 @@ public class MailCrawler_thread extends Thread {
 		    //intentamos extraer el tipo de archivo segœn la cabecera del http.
 		    type = urlConnection.getContentType();
 			if(type==null)
-			    throw new Exception("Tipo de formato de la URL no valido: "+type);
+			    throw new Exception("Tipo de formato de la URL: " +strURL+" no valido: "+type);
 		if (!type.contains("text/html")) 
-		    throw new Exception("Tipo de formato del recurso no soportado: "+type);
+		    throw new Exception("Tipo de formato del recurso:" +strURL+"  no soportado: "+type);
 
 		return url; 
 
@@ -178,6 +180,7 @@ public class MailCrawler_thread extends Thread {
 
 	    urlConnection.setAllowUserInteraction(false);
 
+	    urlConnection.setConnectTimeout(timeout);
 	    InputStream urlStream = url.openStream();
 
 	    // buscamos en el inputstream links

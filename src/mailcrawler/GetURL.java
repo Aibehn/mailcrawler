@@ -36,31 +36,33 @@ public class GetURL{
 			
 			while(end==false){	// mientras no se haya terminado de procesar
 			
-				index1=resource.indexOf(header);				// indice=posición de 'href'
+				index1=resource.indexOf(header);				// indice=posici—n de 'href'
 				index_caps1=resource.indexOf(header_caps);
-				index2=resource.indexOf(">",index1);			// indice=posición de '>'
+				index2=resource.indexOf(">",index1);			// indice=posici—n de '>'
 				index_caps2=resource.indexOf(">",index_caps1);
 				
 				
 				if((index1==-1) && (index_caps1==-1)){		// si no hay enlace
-					end=true;								// se termina
+					end=true;				// se termina
 				}
 				else{
 					if(index1!=-1){
 					stringTemp=resource.substring(index1,index2);	// se selecciona una parte del buffer
-					resource.delete(0,index2);						// elimina la parte estudiada
+					resource.delete(0,index2);			// elimina la parte estudiada
 					}
 					else{
 					stringTemp=resource.substring(index_caps1,index_caps2);	// se selecciona una parte del buffer
-					resource.delete(0,index_caps2);							// elimina la parte estudiada
+					resource.delete(0,index_caps2);				// elimina la parte estudiada
 					
 					}
 					try{
 						if(hasGrammar(stringTemp)==true){
-							if((stringTemp.indexOf(header)!=-1)||(stringTemp.indexOf(header_caps)!=-1)){		// si hay enlace en stringTemp
+							if((stringTemp.indexOf(header)!=-1)||(stringTemp.indexOf(header_caps)!=-1)){		
+							    // si hay enlace en stringTemp
 								link=extractURL(stringTemp);		// extrae el enlace
 								
-								if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	// comprueba si la URL es relativa
+								if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	
+								    // comprueba si la URL es relativa
 									/*if(link.charAt(0)!='/'){		// comprueba si empieza con barra
 										link="/"+link;				// si no, se la añade
 									}
@@ -73,31 +75,31 @@ public class GetURL{
 									    link=uri.toString();
 									}//fin de try
 									catch(URISyntaxException e){
-									   log("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link,WARNING);
+									   log("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link);
 									}//fin de catch
 								}
 								if(validURL(link)==true){
-									urls.add(link);								//añade la URL a la lista
-									log("Se ha obtenido la URL: "+link);
+									urls.add(link);								//a–ade la URL a la lista
+									//log("Se ha obtenido la URL: "+link);
 								}
 								//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
 							}
-						}
-					}
+						}//fin de if hasGrammar
+					}//fin de try
 					catch(Exception e){
-						log("No se ha podido procesar un enlace en el recurso "+dominio,WARNING);
+						log("No se ha podido procesar un enlace:"+link+ "en el recurso: "+dominio.toString(),WARNING);
 					}
-				}
-			}
-			log("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio,WARNING);
-		}
+				}//fin de else
+			}//fin de while (end)
+			log("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio.toString());
+		}//fin de try
 		catch(Exception e){
 			//urls=urls;
-			log("No se ha terminado de analizar el recurso "+dominio+". "+urls.size()+" URLs obtenidas",ERROR);
+			log("No se ha terminado de analizar el recurso "+dominio.toString()+". "+urls.size()+" URLs obtenidas",ERROR);
 		}
-	}
+	}//fin de getURL
 	
-	//Función que determina si el substring de href responde a la estructura esperada
+	//Funci—n que determina si el substring de href responde a la estructura esperada
 	public boolean hasGrammar(String sString){
 		int i=0;
 		boolean aux=false;
@@ -108,7 +110,7 @@ public class GetURL{
 			i++;
 		}
 		return aux;
-	}
+	}//fin de hasGrammar
 
 		
 	//Función que extrae el enlace de un string
@@ -121,7 +123,7 @@ public class GetURL{
 		linkDef=tokens.nextToken();									//Extrae el segundo token (el enlace)
 		
 		return linkDef;
-	}    
+	}//fin de estractURL  
 
 	//Función que determina si el enlace es de un contenido válido
 	public boolean validURL(String link){
@@ -212,7 +214,7 @@ public class GetURL{
 		return false;
 		}
 		return true;
-	}
+	}//fin de validURL
 		           
 	//Método que devuelve la estructura de datos con los enlaces
 	public LinkedList<String> returnURL() throws Exception{

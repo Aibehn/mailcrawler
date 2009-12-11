@@ -76,7 +76,10 @@ public class Data_crawler {
 		String strURL = it.next();
 		if(!recursos_visitados.contains(strURL)){
 		    //si el recurso no ha sido visitado
-		    por_procesar.add(strURL);
+		    //la comprobaci—n se realiza por separado para mejorar el rendimiento
+		    if(!por_procesar.contains(strURL))
+			//si no est‡ ya en la lista de urls por procesar.
+			por_procesar.add(strURL);
 		}//fin de if
 	    }//fin de while
 	}//fin de add_toprocess

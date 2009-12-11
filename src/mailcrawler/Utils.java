@@ -15,6 +15,8 @@ public class Utils {
 	private static final int ERROR = 2;
 	private static final int WARNING = 1;
 	private static final int DEBUG = 0;
+	
+	private static final int timeout=2000;//timeout paras las conexiones
     	
 	
 	
@@ -43,7 +45,10 @@ public class Utils {
 	    }
 	    String strCommands;
 	    try {
-		InputStream urlRobotStream = urlRobot.openStream();
+		URLConnection urlConnect = urlRobot.openConnection();
+		urlConnect.setConnectTimeout(timeout);
+		InputStream urlRobotStream = urlConnect.getInputStream();
+		
 		// read in entire file
 		byte b[] = new byte[1000];
 		int numRead = urlRobotStream.read(b);
@@ -217,6 +222,7 @@ public class Utils {
 				log.println(fyh.toString()+"  "+mensaje);
 			}
 			else if (tipo == WARNING){
+			    if(!limite_tiempo)
 				log.println(fyh.toString()+"  WARNING: "+mensaje);
 			}
 			log.close();
