@@ -63,7 +63,7 @@ public class MailCrawler_monitor extends Thread{
     		    //tenemos datos que procesar y podemos ejecutar m‡s hilos -> podemos lanzar m‡s hilos.
 
     		    MailCrawler_thread thread = new MailCrawler_thread
-    		    				(this,mailcrawler_group,"thread_"+numerate,data);
+    		    				(this,mailcrawler_group,"thread_hijo_"+numerate,data);
     		    thread.start();
     		    log("Lanzamos un nuevo thread, ya que el numero actual de hilos era: "+N);
     		    numerate++;
@@ -84,22 +84,26 @@ public class MailCrawler_monitor extends Thread{
     		}//fin de synchronized
     		N=mailcrawler_group.activeCount();//numero de hilos activos
     	    }//fin de while
+    	    log("Hemos salido de la comprobacion de los threads activos: Numero: "+N+"Finalizar: "+data.finalizar()
+    		    +"Datos: "+data.isEmpty());
+    	    
     	    if(!data.finalizar()){
-    		//si se ha terminado el programa porque no hay datos, ni hilos que finalizar, guardamos
-    		//los datos que tengamos hasta ahora.
-    		finaliza_correctamente=false;
+    		//si ten’amos que salir porque nos lo han indicado externamente
+    		finaliza_correctamente=true;
     	    }
     	    else{
-    		finaliza_correctamente=true;
+    		//si hemos salido por causas ajenas
+    		finaliza_correctamente=false;
     	    }
     	    try{
 		synchronized(this){
-		    notify();//notificamos que el hilo ha finalizado.
+		    notify();//notificamos que el hilo ha finalizado al proceso principal MailCrawler
 		}//fin de synchronized
 	    }//fin de try
 	    catch(IllegalMonitorStateException e){
 		log("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString(),ERROR);
 	    }
+	    //fin de ejecucion
     	    log("Fin de ejecucion de la clase MailCrawler_monitor");
     	}//fin de run
     	
@@ -108,14 +112,13 @@ public class MailCrawler_monitor extends Thread{
     	 * Clase que finaliza y espera a la correcta finalizaci—n de todos los hilos
     	 */
     	public boolean finalizar(HashSet<String> mails){
-    	    log("Vamos a finalizar el thread_monitor");
+    	    log("Vamos a finalizar los threads hijos del thread_monitor");
     	    
     	    data.set_finalizar(true);
     	    
     	    do{    		    
     		    if(!this.isAlive()){
-    			yield();
-    			N=mailcrawler_group.activeCount();//numero de hilos activos
+    			yield();//pausamos la ejecuci—n actual y esperamos a que los threads hijos terminen
     		    }
     		    else {
     			try{
@@ -127,10 +130,12 @@ public class MailCrawler_monitor extends Thread{
     	    		    return false;
     	    		}//fin de catch
     		    }
+    		    N=mailcrawler_group.activeCount();//numero de hilos activos
     		
     	    }
     	    while(N!=0 || this.isAlive());
-    	    mails = data.get_mails(); //devolvemos en la variable que nos pasan la lista de mails
+    	    mails.addAll(data.get_mails()); //devolvemos en la variable que nos pasan la lista de mails
+    	    
     	    log("Finalizacion de Forma correcta");
     	    return true;
     	}//fin de finalizar()
