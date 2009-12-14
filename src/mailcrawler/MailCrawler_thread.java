@@ -1,6 +1,8 @@
 package mailcrawler;
 
 import java.util.StringTokenizer;
+import java.util.*; 
+import java.io.*;
 
 public class MailCrawler_thread extends Thread {
 
@@ -126,12 +128,12 @@ public static void guarda_fich(HashSet<String> nom) throws IOException {
              int i=1;
              int salir=1;
              do{
-                if(Character.isLetterOrDigit(cadena[indice-i]))
+                if((cadena[indice+i]==' ')||(cadena[indice+i]==':'))
                  i++;
                 else
                     salir=-1; //salimos cnd encontramos el primer caracter qu no es una letra
 
-             }while(salir!=-1);
+             }while((salir!=-1)&&(i<delimFinal));
 
              int j=1; //ahora buscamos caracteres que no son letras ni puntos por detras de la @
              salir=1;
@@ -156,8 +158,8 @@ public static void guarda_fich(HashSet<String> nom) throws IOException {
              }while((salir!=-1)&&(j<delimFinal)&&((indice+j)<token.length())); //salimos del bucle exterior a la vez que del interior
 
 
-             //hemos encontrado un nuevo e-mail solo si la busqueda nose extendio demasiado
-            if(j<delimFinal) {
+             //hemos encontrado un nuevo e-mail solo si la busqueda no se extendio demasiado
+            if((i<delimFinal)&&(j<delimFinal)) {
 
              mail=token.substring(indice-i+1,indice+j); //cogemos la parte del string del email
 

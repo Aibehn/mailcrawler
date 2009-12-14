@@ -8,7 +8,7 @@ import java.io.PrintWriter;
 import java.util.Date;
 
 /**
- * @author Paula Montero, Carmen Roberto, Lidia Valvuena, Ignacio Mieres, Enrique Blanco, Iv‡n Grande
+ * @author Paula Montero, Carmen Roberto, Lidia Valbuena, Ignacio Mieres, Enrique Blanco, Iv‡n Grande
  *
  */
  
