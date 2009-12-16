@@ -33,6 +33,7 @@ public class MyLogger {
     public void setup() throws IOException {
 	// Create Logger
 	logger = Logger.getLogger(nombrelog);
+	logger.setUseParentHandlers(false);
 	logger.setLevel(lvl);
 	fileTxt = new FileHandler(nombrelog);
 	//fileHTML = new FileHandler(nombrelog.substring(0, nombrelog.lastIndexOf("."))+".html");
