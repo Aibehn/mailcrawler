@@ -4,14 +4,7 @@ import java.util.*;
 
 
 public class MailCrawler_monitor extends Thread{
-    
-    
-    //Variables para el funcionamiento de la clase log, de depuración.
-	private final int ERROR = 2;
-	private final int WARNING = 1;
-	private final int DEBUG = 0;
-	 
-	
+    	
 	private static final long timeout = 1000;//valor a esperar 1 seg.
 
 	private int N = 0; //número de threads activos
@@ -46,7 +39,7 @@ public class MailCrawler_monitor extends Thread{
     	
     	
     	public void run(){
-    	    log("Ejecucion del thread MailCrawler_monitor");
+    	    Utils.logger.info("Ejecucion del thread MailCrawler_monitor");
     	    
     	    int numerate = 0;
     	    
@@ -65,7 +58,7 @@ public class MailCrawler_monitor extends Thread{
     		    MailCrawler_thread thread = new MailCrawler_thread
     		    				(this,mailcrawler_group,"thread_hijo_"+numerate,data);
     		    thread.start();
-    		    log("Lanzamos un nuevo thread, ya que el numero actual de hilos era: "+N);
+    		    Utils.logger.fine("Lanzamos un nuevo thread, ya que el numero actual de hilos era: "+N);
     		    numerate++;
     		}//fin de if N_MAX
     		
@@ -76,15 +69,15 @@ public class MailCrawler_monitor extends Thread{
     			wait(timeout); //esperamos un tiempo
     		    }//fin de try
     		    catch(InterruptedException e){
-    			log("Thread en estado de interrupcion: "+e.toString(),WARNING);
+    			Utils.logger.warning("Thread en estado de interrupcion: "+e.toString());
     		    }
     		    catch(IllegalMonitorStateException e){
-    			log("Error de monitor: "+e.toString(),ERROR);
+    			Utils.logger.severe("Error de monitor: "+e.toString());
     		    }
     		}//fin de synchronized
     		N=mailcrawler_group.activeCount();//numero de hilos activos
     	    }//fin de while
-    	    log("Hemos salido de la comprobacion de los threads activos: Numero: "+N+"Finalizar: "+data.finalizar()
+    	    Utils.logger.fine("Hemos salido de la comprobacion de los threads activos: Numero: "+N+"Finalizar: "+data.finalizar()
     		    +"Datos: "+data.isEmpty());
     	    
     	    if(!data.finalizar()){
@@ -101,10 +94,10 @@ public class MailCrawler_monitor extends Thread{
 		}//fin de synchronized
 	    }//fin de try
 	    catch(IllegalMonitorStateException e){
-		log("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString(),ERROR);
+		Utils.logger.severe("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString());
 	    }
 	    //fin de ejecucion
-    	    log("Fin de ejecucion de la clase MailCrawler_monitor");
+	    Utils.logger.info("Fin de ejecucion de la clase MailCrawler_monitor");
     	}//fin de run
     	
     	
@@ -112,7 +105,7 @@ public class MailCrawler_monitor extends Thread{
     	 * Clase que finaliza y espera a la correcta finalización de todos los hilos
     	 */
     	public boolean finalizar(HashSet<String> mails){
-    	    log("Vamos a finalizar los threads hijos del thread_monitor");
+    	    Utils.logger.fine("Vamos a finalizar los threads hijos del thread_monitor");
     	    
     	    data.set_finalizar(true);
     	    
@@ -126,7 +119,7 @@ public class MailCrawler_monitor extends Thread{
     		    
     			}//fin de try
     			catch(InterruptedException e){
-    	    		    log("Error al finalizar: "+e.toString(),ERROR);
+    			    Utils.logger.severe("Error al finalizar: "+e.toString());
     	    		    return false;
     	    		}//fin de catch
     		    }
@@ -136,19 +129,7 @@ public class MailCrawler_monitor extends Thread{
     	    while(N!=0 || this.isAlive());
     	    mails.addAll(data.get_mails()); //devolvemos en la variable que nos pasan la lista de mails
     	    
-    	    log("Finalizacion de Forma correcta");
+    	    Utils.logger.info("Finalizacion de Forma correcta");
     	    return true;
     	}//fin de finalizar()
-    	
-	/*
-	 * log() será una clase definida para la depuración de errores. Guardará en un archivo toda la información relevante.
-	 * A la hora de ejecutar con límite de tiempo, los mensajes con prioridad DEBUG, serán ignorados.
-	 */
-	private void log(String mensaje){
-	    log(mensaje,DEBUG); //por defecto, será en en modo depuracion.
-	}//fin de método
-	private void log(String mensaje,int tipo){
-	    mensaje = "MONITOR: "+mensaje;
-	    Utils.log(mensaje,tipo);
-	}
 }
