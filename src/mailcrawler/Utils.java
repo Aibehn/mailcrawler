@@ -3,6 +3,7 @@ package mailcrawler;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.logging.*;
 
 public class Utils {
     	public static final String DISALLOW = "Disallow:";//directiva para buscar en robots.txt
@@ -11,17 +12,28 @@ public class Utils {
     	private static boolean limite_tiempo=false; // En el momento en el que tuvieramos que ejecutar la clase con un limite de tiempo
     	//establecido, limite_tiempo ser’a true, para mejorar un poco su rendimiento
     	
-        //Variables para el funcionamiento de la clase log, de depuraci—n.
-	private static final int ERROR = 2;
-	private static final int WARNING = 1;
-	private static final int DEBUG = 0;
 	
 	private static final int timeout=2000;//timeout paras las conexiones
     	
-	
+	public static Logger logger;
 	
 	public static void set_log(String nombre){
 	    nombrelog=nombre;
+	    Level nivel_minimo;
+	    if(!limite_tiempo){
+		nivel_minimo=Level.ALL;
+	    }
+	    else{
+		nivel_minimo=Level.CONFIG;
+	    }
+	    MyLogger mylog = new MyLogger(nombrelog,nivel_minimo);
+	    try{
+		mylog.setup();
+	    }
+	    catch(IOException e){
+		System.out.println("ERROR al crear el log: "+e.toString());
+	    }
+	    logger=mylog.getlogger();
 	}//finde de set_log
 	
     	/*
@@ -31,7 +43,7 @@ public class Utils {
 	 * Puede quitarse si se quiere mejorar el funcionamiento, no es indispensable.
 	 */
 	public static boolean robotSafe(URL url) {
-	    log("Comprobamos si la URL es accesible para robots");
+	    Utils.logger.fine("Comprobamos si la URL es accesible para robots");
 	    String strHost = url.getHost();
 
 	    // form URL of the robots.txt file
@@ -111,7 +123,7 @@ public class Utils {
 	    LinkedList<String> resultados=new LinkedList<String>();
 	    StringBuffer fichero=sFichero;
 
-	    String delimitador="\"";    //delimitador para crear los tokens
+	    String delimitador="<";    //delimitador para crear los tokens
 	    String linea;               //guardara cada linea del archivo
 	    int indice;
 
@@ -156,13 +168,15 @@ public class Utils {
 	             int i=1;
 	             int salir=1;
 	             do{
-	                if(Character.isLetterOrDigit(cadena[indice-i]))
+	                //if(Character.isLetterOrDigit(cadena[indice-i]))
+	                if((cadena[indice+i]==' ')||(cadena[indice+i]==':'))
 	                 i++;
 	                else
 	                    salir=-1; //salimos cnd encontramos el primer caracter qu no es una letra
 
-	             }while(salir!=-1);
-
+	             //}while(salir!=-1);
+	             }while((salir!=-1)&&(i<delimFinal));
+	             
 	             int j=1; //ahora buscamos caracteres que no son letras ni puntos por detras de la @
 	             salir=1;
 	             do{
@@ -187,48 +201,18 @@ public class Utils {
 
 
 	             //hemos encontrado un nuevo e-mail solo si la busqueda nose extendio demasiado
-	            if(j<delimFinal) {
-
+	            //if(j<delimFinal) {
+	            if((i<delimFinal)&&(j<delimFinal)) {
+	             
 	             mail=token.substring(indice-i+1,indice+j); //cogemos la parte del string del email
 
 	            resultados.add(mail); //incluimos el email en el array de soluciones
-
-
+	            	//System.out.println("Email a–adido: "+mail);
+	            	Utils.logger.finest("A„ADIDO EMAIL: "+mail);
 	            }//fin de if
 	         }//fin de if(indice!=-1)
 
 	        return resultados;
 	      }//fin de mŽtodo buscarMail
 	
-	/*
-	 * log() ser‡ una clase definida para la depuraci—n de errores. Guardar‡ en un archivo toda la informaci—n relevante.
-	 * A la hora de ejecutar con l’mite de tiempo, los mensajes con prioridad DEBUG, ser‡n ignorados.
-	 */
-	public static void log(String mensaje){
-	    if(!limite_tiempo){
-	    //System.out.println(mensaje);
-		log(mensaje,DEBUG); //por defecto, ser‡ en en modo depuracion.
-	    }
-	}//fin de mŽtodo
-	public static void log(String mensaje,int tipo){
-		Date fyh = new Date();
-		try{
-			PrintWriter log = new PrintWriter (new FileWriter(nombrelog,true));
-			
-			if (tipo == ERROR){
-				log.println(fyh.toString()+"  ERROR: "+mensaje);
-			}
-			else if (tipo == DEBUG){
-				log.println(fyh.toString()+"  "+mensaje);
-			}
-			else if (tipo == WARNING){
-			    if(!limite_tiempo)
-				log.println(fyh.toString()+"  WARNING: "+mensaje);
-			}
-			log.close();
-		}
-		catch (IOException e){
-			System.out.println("Imposible acceder al log: "+e.toString());
-		}
-	}
 }//fin de clase

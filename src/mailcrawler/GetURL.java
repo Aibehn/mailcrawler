@@ -3,14 +3,7 @@ package mailcrawler;
 import java.util.*;    
 import java.net.*;
 
-public class GetURL{
-
-	//Variables para funciones log
-    	private final int ERROR = 2;
-	private final int WARNING = 1;
-	private final int DEBUG = 0;
-	private boolean limite_tiempo=false;
-                  
+public class GetURL{                  
 	
 	//Variables de clase
 	private LinkedList<String> urls;	//Lista en la que se devuelven las URLs
@@ -24,7 +17,7 @@ public class GetURL{
 			urls=new LinkedList<String>();
 			resource=flujo;
 			dominio=url;
-			log("Se analiza el recurso: "+dominio.toString());
+			Utils.logger.finer("Se analiza el recurso: "+dominio.toString());
 			
 			String header = "href";							//cabecera href
 			String header_caps= "HREF";						//cabecera HREF
@@ -75,7 +68,7 @@ public class GetURL{
 									    link=uri.toString();
 									}//fin de try
 									catch(URISyntaxException e){
-									   log("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link);
+									    Utils.logger.finest("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link);
 									}//fin de catch
 								}
 								if(validURL(link)==true){
@@ -87,15 +80,15 @@ public class GetURL{
 						}//fin de if hasGrammar
 					}//fin de try
 					catch(Exception e){
-						log("No se ha podido procesar un enlace:"+link+ "en el recurso: "+dominio.toString(),WARNING);
+					    Utils.logger.finest("No se ha podido procesar un enlace:"+link+ "en el recurso: "+dominio.toString());
 					}
 				}//fin de else
 			}//fin de while (end)
-			log("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio.toString());
+			Utils.logger.finer("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio.toString());
 		}//fin de try
 		catch(Exception e){
 			//urls=urls;
-			log("No se ha terminado de analizar el recurso "+dominio.toString()+". "+urls.size()+" URLs obtenidas",ERROR);
+		    Utils.logger.finer("ERROR: No se ha terminado de analizar el recurso "+dominio.toString()+". "+urls.size()+" URLs obtenidas");
 		}
 	}//fin de getURL
 	
@@ -221,20 +214,5 @@ public class GetURL{
 		
 		return urls;
 	}
-	
-	/*
-	 * log() ser‡ una clase definida para la depuraci—n de errores. Guardar‡ en un archivo toda la informaci—n relevante.
-	 * A la hora de ejecutar con l’mite de tiempo, los mensajes con prioridad DEBUG, ser‡n ignorados.
-	 */
-	private void log(String mensaje){
-	    if(!limite_tiempo){
-		log(mensaje,DEBUG); //por defecto, ser‡ en en modo depuracion.
-	    }
-	}
-	private void log(String mensaje,int tipo){
-	    mensaje = "GETURL: "+mensaje;
-	    Utils.log(mensaje, tipo);
-	}//fin de log
-	
-	
+		
 }
