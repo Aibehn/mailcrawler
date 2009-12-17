@@ -169,7 +169,7 @@ public class Utils {
 	             int salir=1;
 	             do{
 	                //if(Character.isLetterOrDigit(cadena[indice-i]))
-	                if((cadena[indice+i]==' ')||(cadena[indice+i]==':'))
+	                if((cadena[indice+i]!=' ')&&(cadena[indice+i]!=':'))
 	                 i++;
 	                else
 	                    salir=-1; //salimos cnd encontramos el primer caracter qu no es una letra
