@@ -63,8 +63,8 @@ public class MailCrawler_thread extends Thread {
 		    StringBuffer content = descargar_url (url_toprocess);
 		    
 		    Utils.logger.fine("Descarga del contenido de la url: "+url_toprocess.toString());
-		   
-		    lista_urls = Utils.getURL(url_toprocess,content);
+		    StringBuffer content_temp=new StringBuffer(content);
+		    lista_urls = Utils.getURL(url_toprocess,content_temp);
 		    lista_mails = Utils.sacaMailTo(content);
 		    
 		    // las a–adimos a la lista para procesarlas.
@@ -139,6 +139,7 @@ public class MailCrawler_thread extends Thread {
 
 		urlConnection.setAllowUserInteraction(false);
 		urlConnection.setConnectTimeout(timeout);
+		//urlConnection.setReadTimeout(timeout);
 
 		InputStream urlStream = url.openStream();
 		String type = URLConnection.guessContentTypeFromStream(urlStream);
@@ -180,6 +181,7 @@ public class MailCrawler_thread extends Thread {
 	    urlConnection.setAllowUserInteraction(false);
 
 	    urlConnection.setConnectTimeout(timeout);
+	    //urlConnection.setReadTimeout(timeout);
 	    InputStream urlStream = url.openStream();
 
 	    // buscamos en el inputstream links
