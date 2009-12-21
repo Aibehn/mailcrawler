@@ -121,7 +121,9 @@ public class Utils {
 	public static LinkedList<String> sacaMailTo(StringBuffer sFichero) throws IOException{
 			
 	    LinkedList<String> resultados=new LinkedList<String>();
-	    StringBuffer fichero=sFichero;
+	    //StringBuffer fichero=sFichero;
+		String fichero=sFichero.toString();
+		//System.out.println(fichero);
 
 	    String delimitador="<";    //delimitador para crear los tokens
 	    String linea;               //guardara cada linea del archivo
@@ -129,12 +131,15 @@ public class Utils {
 
         while ((fichero.length())!=0){ //hasta acabar con el StringBuffer
 		indice=fichero.indexOf(delimitador);
-		if(indice==0) indice=fichero.length();
+		if(indice==0){//fichero.deleteCharAt(0);
+						fichero=fichero.substring(1);
+					indice=fichero.indexOf(delimitador);} 
 		if(indice==-1) indice=fichero.length();
 			linea=fichero.substring(0,indice);
-			fichero.delete(0,indice);
+			//fichero.delete(0,indice);
+			fichero=fichero.substring(indice+1);
+			 System.out.println(linea);
 			buscarMail(linea,resultados);
-
         }  // fin del while
 
         return(resultados);
@@ -142,7 +147,7 @@ public class Utils {
 
 	//Metodo para buscar la cadena de caracteres "mailto:" dentro de un string, coger el e-mail
 	//y guardarlo en una lista
-	public static LinkedList<String> buscarMail(String token, LinkedList<String> resultados){
+	private static LinkedList<String> buscarMail(String token, LinkedList<String> resultados){
 
 	         String mail;  //String para guardar resultado
 	         int indice;   //Posicion de la @
@@ -163,9 +168,10 @@ public class Utils {
 	         indice=token.indexOf("@"); //devuelve -1 si "mailto" no existe en el string
 	                                            // o el indice de donde empieza si existe
 
-
+			 System.out.println(token);
 	         if(indice!=-1){  //comenzamos buscando el primer caracter q no sea una letra por delante de la @
-	             int i=1;
+			 System.out.println("encuentra @");
+				 int i=1;
 	             int salir=1;
 	             do{
 	                //if(Character.isLetterOrDigit(cadena[indice-i]))
@@ -207,8 +213,8 @@ public class Utils {
 	             mail=token.substring(indice-i+1,indice+j); //cogemos la parte del string del email
 
 	            resultados.add(mail); //incluimos el email en el array de soluciones
-	            	//System.out.println("Email a–adido: "+mail);
-	            	Utils.logger.finest("A„ADIDO EMAIL: "+mail);
+	            	System.out.println("Email a–adido: "+mail);
+	            	//Utils.logger.finest("A„ADIDO EMAIL: "+mail);
 	            }//fin de if
 	         }//fin de if(indice!=-1)
 
