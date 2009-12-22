@@ -7,12 +7,12 @@ public class GetURL{
 	
 	//Variables de clase
 	private LinkedList<String> urls;	//Lista en la que se devuelven las URLs
-	private StringBuffer resource;	// Stringbuffer con el código a analizar
+	private StringBuilder resource;	// StringBuilder con el código a analizar
 	private URL dominio;			//En caso de recibir String con el dominio, para URLs relativas
 	
 	
 	//Constructor de la clase
-	public GetURL(StringBuffer flujo,URL url){
+	public GetURL(StringBuilder flujo,URL url){
 		try{	
 			urls=new LinkedList<String>();
 			resource=flujo;

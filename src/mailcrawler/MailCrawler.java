@@ -45,6 +45,7 @@ public class MailCrawler {
 		
 		if(args[1].length()!=0 && args[1].trim().equalsIgnoreCase("true")){
 		    limite_tiempo=true;
+		    Utils.set_limite_tiempo(true);
 		}
 		
 		if(args[3].length()!=0){
@@ -98,7 +99,7 @@ public class MailCrawler {
 	    		synchronized(this){
 	    		    try{
 	    			Utils.logger.finest("Dormimos al programa principal.");
-	    			wait(); //esperamos un tiempo
+	    			wait(10000); //esperamos un tiempo
 	    			
 	    		    }//fin de try
 	    		    catch(InterruptedException e){
@@ -109,6 +110,12 @@ public class MailCrawler {
 	    		    }
 	    		}//fin de synchronized
 	    		Utils.logger.finest("El Thread principal se despert—.");
+	    		
+	    		HashSet<String> mails = monitor.get_data().get_mails();
+			Utils.logger.finest("Obtenemos la lista de mails.");
+			guarda_fich(mails);
+			Utils.logger.finest("Guardamos la lista de mails.");
+			    
 			}//fin de do-while
 			while(monitor.isAlive());
 			Utils.logger.finer("Finalizaci—n del while en el thread principal.");
