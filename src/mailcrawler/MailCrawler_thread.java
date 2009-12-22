@@ -22,9 +22,10 @@ public class MailCrawler_thread extends Thread {
     	private Thread monitor; //thread padre
     	
     	private Data_crawler data; //variable de datos sincronizada para el acceso desde varios threads.
-
-	
     	
+    	private List<String> por_procesar = new LinkedList<String>();
+	
+    	private static int N_MAX = 100; //tama–o m‡ximo de la cola privada
     	/*---------------------------------------------FIN VARIABLES DE CLASE-------------------------------*/
 	
     
@@ -52,19 +53,31 @@ public class MailCrawler_thread extends Thread {
 	public void run(){
 	    Utils.logger.fine("Inicio de la ejecucion del thread");
 	    
+	    //Usaremos la configuraci—n del sistema para el proxy:
+	    
+	    System.setProperty("java.net.useSystemProxies", "true");
+	    
+	    int NN_MAX=0;
 	    
 	    while(!data.isEmpty()&&!data.finalizar()){
-		//obtenemos una de las urls que necesitamos procesar.
-		String strURL_toprocess = data.get_toprocess();
 		
+		if(NN_MAX<N_MAX){
+		    NN_MAX++;
+		}
+		//obtenemos una de las urls que necesitamos procesar.
+		for(int i=0;i<NN_MAX;i++){
+		    por_procesar.add(data.get_toprocess());
+		}
+		do{
+		String strURL_toprocess = por_procesar.remove(0);
 		try{
 		    URL url_toprocess = comprueba_url(strURL_toprocess);
 		    
-		    StringBuffer content = descargar_url (url_toprocess);
-		    
+		    StringBuilder content = descargar_url (url_toprocess);
 		    Utils.logger.fine("Descarga del contenido de la url: "+url_toprocess.toString());
-		    StringBuffer content_temp=new StringBuffer(content);
-		    lista_urls = Utils.getURL(url_toprocess,content_temp);
+		   
+		    StringBuilder content_tmp = content;
+		    lista_urls = Utils.getURL(url_toprocess,content_tmp);
 		    lista_mails = Utils.sacaMailTo(content);
 		    
 		    // las a–adimos a la lista para procesarlas.
@@ -87,11 +100,12 @@ public class MailCrawler_thread extends Thread {
 		    Utils.logger.warning("Error en la URL: "+e.toString());
 		}
 		data.add_visited(strURL_toprocess); //marcamos la url actual como buscada.
-
+		}
+		while(!por_procesar.isEmpty()&&!data.finalizar());
 	    }//fin de while
 		// searchThread.stop();
-	    Utils.logger.fine("Finalizacion del thread.");
-	    try{
+	    Utils.logger.fine("Finalizacion del thread: "+this.getName());
+	    /*try{
 		synchronized(this){
 		    //log("Nombre del Monitor: "+monitor.getName());
 		    if(monitor.isAlive())
@@ -99,8 +113,8 @@ public class MailCrawler_thread extends Thread {
 		}//fin de synchronized
 	    }//fin de try
 	    catch(IllegalMonitorStateException e){
-		Utils.logger.severe("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString());
-	    }
+		Utils.logger.severe("Error, el thread actual no es duenyo de este objeto monitor: "+e.toString());
+	    }*/
 	}//fin de clase run
 
 	
@@ -139,7 +153,7 @@ public class MailCrawler_thread extends Thread {
 
 		urlConnection.setAllowUserInteraction(false);
 		urlConnection.setConnectTimeout(timeout);
-		//urlConnection.setReadTimeout(timeout);
+		//urlConnection.setReadTimeout(3*timeout);
 
 		InputStream urlStream = url.openStream();
 		String type = URLConnection.guessContentTypeFromStream(urlStream);
@@ -173,7 +187,7 @@ public class MailCrawler_thread extends Thread {
 	 * content, el c—digo fuente.
 	 */
 	
-	private StringBuffer descargar_url(URL url) throws Exception{
+	private StringBuilder descargar_url(URL url) throws Exception{
 	
 	    // intentanmos una conexi—n
 	    URLConnection urlConnection = url.openConnection();
@@ -188,7 +202,7 @@ public class MailCrawler_thread extends Thread {
 	    // primero, leemos la URL entera
 	    byte b[] = new byte[1000];
 	    int numRead;
-	    StringBuffer content= new StringBuffer();
+	    StringBuilder content= new StringBuilder();
 	    do{   	    
 		numRead = urlStream.read(b);
 		if (numRead != -1) {
