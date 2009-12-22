@@ -17,6 +17,15 @@ public class Utils {
     	
 	public static Logger logger;
 	
+	
+	/*
+	 * Especifica si vamos a estar con l’mite de tiempo o no
+	 */
+	public static void set_limite_tiempo(boolean lim){
+	    limite_tiempo=lim;
+	}
+	
+	
 	public static void set_log(String nombre){
 	    nombrelog=nombre;
 	    Level nivel_minimo;
@@ -106,7 +115,7 @@ public class Utils {
 	 * GetURL, extrae href
 	 */
 	
-	public static LinkedList<String> getURL(URL url,StringBuffer contenedor)throws Exception{
+	public static LinkedList<String> getURL(URL url,StringBuilder contenedor)throws Exception{
 	    
 	    GetURL nuevoGetURL=new GetURL(contenedor,url);
 	    return nuevoGetURL.returnURL();
@@ -118,7 +127,7 @@ public class Utils {
 	 *  nos devuelve en una lista las direcciones 
 	 * de correo que encuentra despues de un mailto:
 	 */
-	public static LinkedList<String> sacaMailTo(StringBuffer sFichero) throws IOException{
+	public static LinkedList<String> sacaMailTo(StringBuilder sFichero) throws IOException{
 			
 	    LinkedList<String> resultados=new LinkedList<String>();
 	    //StringBuffer fichero=sFichero;
@@ -138,7 +147,7 @@ public class Utils {
 			linea=fichero.substring(0,indice);
 			//fichero.delete(0,indice);
 			fichero=fichero.substring(indice+1);
-			 System.out.println(linea);
+			 //System.out.println(linea);
 			buscarMail(linea,resultados);
         }  // fin del while
 
@@ -168,9 +177,9 @@ public class Utils {
 	         indice=token.indexOf("@"); //devuelve -1 si "mailto" no existe en el string
 	                                            // o el indice de donde empieza si existe
 
-			 System.out.println(token);
+			 //System.out.println(token);
 	         if(indice!=-1){  //comenzamos buscando el primer caracter q no sea una letra por delante de la @
-			 System.out.println("encuentra @");
+			 //System.out.println("encuentra @");
 				 int i=1;
 	             int salir=1;
 	             do{
@@ -213,8 +222,8 @@ public class Utils {
 	             mail=token.substring(indice-i+1,indice+j); //cogemos la parte del string del email
 
 	            resultados.add(mail); //incluimos el email en el array de soluciones
-	            	System.out.println("Email a–adido: "+mail);
-	            	//Utils.logger.finest("A„ADIDO EMAIL: "+mail);
+	            	//System.out.println("Email a–adido: "+mail);
+	            	Utils.logger.finest("A„ADIDO EMAIL: "+mail);
 	            }//fin de if
 	         }//fin de if(indice!=-1)
 

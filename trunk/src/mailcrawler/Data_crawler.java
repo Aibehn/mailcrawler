@@ -8,13 +8,16 @@ import java.util.*;
  */
 public class Data_crawler {
     
-	private Set<String> recursos_visitados = Collections.synchronizedSet(new HashSet<String>());
-	//almacenar‡ los url's ya visitadas.
+	//private Set<String> recursos_visitados = Collections.synchronizedSet(new HashSet<String>());
+    	private Set<String> recursos_visitados = new HashSet<String>();
+    	//almacenar‡ los url's ya visitadas.
 	
 	private List<String> por_procesar= Collections.synchronizedList(new LinkedList<String>());
-	//lista compartida de url's por procesar.
+    	
+    	//lista compartida de url's por procesar.
 	private Set<String> mail_list = Collections.synchronizedSet(new HashSet<String>());
-	//almacenar‡ la lista de mails
+    	
+    	//almacenar‡ la lista de mails
 	
 	private boolean finalizar=false;
 	//Variable de control para la finalizaci—n de forma controlada de todos los threads.
@@ -64,7 +67,10 @@ public class Data_crawler {
 	 * Devuelve la lista de mails
 	 */
 	public HashSet<String> get_mails(){
-	    return new HashSet<String>(mail_list);
+	    //cada vez que se le llama, borra los mails
+	    HashSet<String> mail_list_tmp=new HashSet<String>(mail_list);
+	    mail_list.clear();
+	    return mail_list_tmp;
 	    
 	}//fin de get_mails
 	/*

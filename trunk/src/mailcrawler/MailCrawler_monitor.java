@@ -5,10 +5,10 @@ import java.util.*;
 
 public class MailCrawler_monitor extends Thread{
     	
-	private static final long timeout = 1000;//valor a esperar 1 seg.
+	private static int timeout = 10;//valor a esperar 10 mseg.
 
 	private int N = 0; //nœmero de threads activos
-	private static final int N_MAX = 10; //nœmero m‡ximo de threads activos que podemos tener.
+	private static final int N_MAX = 100; //nœmero m‡ximo de threads activos que podemos tener.
 	private ThreadGroup mailcrawler_group; //almacenar‡ el grupo de threads.
 	
 	private Data_crawler data; //alamacenar‡ los datos de ejecuci—n del programa.
@@ -61,7 +61,10 @@ public class MailCrawler_monitor extends Thread{
     		    Utils.logger.fine("Lanzamos un nuevo thread, ya que el numero actual de hilos era: "+N);
     		    numerate++;
     		}//fin de if N_MAX
-    		
+    		else{
+    		    timeout = 1000;
+    		    //ya hemos lanzado todos los hilos iniciales, aumentamos la espera
+    		}
     		//espera del monitor de comprobaci—n: realizamos la comprobaci—n del estado de los threads, cada
     		//determinado tiempo.
     		synchronized(this){
@@ -96,40 +99,51 @@ public class MailCrawler_monitor extends Thread{
 	    catch(IllegalMonitorStateException e){
 		Utils.logger.severe("Error, el thread actual no el duenyo de este objeto monitor: "+e.toString());
 	    }
+	    
+	    
+	    terminate();
 	    //fin de ejecucion
 	    Utils.logger.info("Fin de ejecucion de la clase MailCrawler_monitor");
     	}//fin de run
     	
+
     	
     	/*
-    	 * Clase que finaliza y espera a la correcta finalizaci—n de todos los hilos
+    	 * Clase que guarda los mails obtenidos
     	 */
     	public boolean finalizar(HashSet<String> mails){
     	    Utils.logger.fine("Vamos a finalizar los threads hijos del thread_monitor");
     	    
     	    data.set_finalizar(true);
     	    
-    	    do{    		    
-    		    if(!this.isAlive()){
-    			yield();//pausamos la ejecuci—n actual y esperamos a que los threads hijos terminen
-    		    }
-    		    else {
-    			try{
-    			    join(timeout);//esperamos a que el thread actual finalice.
-    		    
-    			}//fin de try
-    			catch(InterruptedException e){
-    			    Utils.logger.severe("Error al finalizar: "+e.toString());
-    	    		    return false;
-    	    		}//fin de catch
-    		    }
-    		    N=mailcrawler_group.activeCount();//numero de hilos activos
-    		
-    	    }
-    	    while(N!=0 || this.isAlive());
+    	    while(this.isAlive()) {
+    		//esperamos a que el thread actual termine la ejecuci—n
+		try{
+		    join(timeout);//esperamos a que el thread actual finalice.
+	    
+		}//fin de try
+		catch(InterruptedException e){
+		    Utils.logger.severe("Error al finalizar: "+e.toString());
+		}//fin de catch
+	    }
+    	    
     	    mails.addAll(data.get_mails()); //devolvemos en la variable que nos pasan la lista de mails
     	    
     	    Utils.logger.info("Finalizacion de Forma correcta");
     	    return true;
     	}//fin de finalizar()
+    	
+    	/*
+    	 * Clase que finaliza y espera a la correcta finalizaci—n de todos los hilos hijos
+    	 */
+    	private void terminate(){
+    	    do{    		    
+		    if(this.isAlive()){
+			yield();//pausamos la ejecuci—n actual y esperamos a que los threads hijos terminen
+		    }
+		    
+		    N=mailcrawler_group.activeCount();//numero de hilos activos
+	    }
+	    while(N!=0);
+    	}
 }
