@@ -3,18 +3,20 @@ package mailcrawler;
 import java.util.*;    
 import java.net.*;
 
-public class GetURL{                  
+public class GetURLAndMail{                  
 	
 	//Variables de clase
-	private LinkedList<String> urls;	//Lista en la que se devuelven las URLs
+	private static LinkedList<String> urls;	//Lista en la que se devuelven las URLs
+	private static LinkedList<String> mails;	//Lista en la que se devuelven los mails
 	private StringBuilder resource;	// StringBuilder con el código a analizar
 	private URL dominio;			//En caso de recibir String con el dominio, para URLs relativas
 	
 	
 	//Constructor de la clase
-	public GetURL(StringBuilder flujo,URL url){
+	public GetURLAndMail(StringBuilder flujo,URL url){
 		try{	
 			urls=new LinkedList<String>();
+			mails=new LinkedList<String>();
 			resource=flujo;
 			dominio=url;
 			Utils.logger.finer("Se analiza el recurso: "+dominio.toString());
@@ -54,28 +56,43 @@ public class GetURL{
 							    // si hay enlace en stringTemp
 								link=extractURL(stringTemp);		// extrae el enlace
 								
-								if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	
-								    // comprueba si la URL es relativa
-									/*if(link.charAt(0)!='/'){		// comprueba si empieza con barra
-										link="/"+link;				// si no, se la añade
-									}
-									if(dominio.charAt(dominio.length()-1)=='/'){	 // comprueba si el dominio termina en barra
-									dominio=dominio.substring(0,dominio.length()-1); // si la tiene, se la quita
-									}
-									link=dominio+link;		// se forma la URL absouluta*/
+								if(link.indexOf("mailto:")!=-1){ //Se comprueba si el enlace es un e-mail
+								
 									try{
-									    URI uri = (dominio.toURI()).resolve(URI.create(link));
-									    link=uri.toString();
-									}//fin de try
-									catch(URISyntaxException e){
-									    Utils.logger.finest("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link);
-									}//fin de catch
+										int dotsPos=link.indexOf(":");
+										link=link.substring(dotsPos+1,link.length());
+										mails.add(link);
+
+									}
+									catch(Exception e){
+										Utils.logger.finest("No se ha podido procesar un e-mail:"+link+ "en el recurso: "+dominio.toString());
+									}
+									
 								}
-								if(validURL(link)==true){
-									urls.add(link);								//a–ade la URL a la lista
-									//log("Se ha obtenido la URL: "+link);
-								}
+								else{	// Si no, será una URL (absoluta o relativa)
+									if((link.indexOf("http://")==-1)&&(link.indexOf("https://")==-1)){	
+									    // comprueba si la URL es relativa
+										/*if(link.charAt(0)!='/'){		// comprueba si empieza con barra
+											link="/"+link;				// si no, se la añade
+										}
+										if(dominio.charAt(dominio.length()-1)=='/'){	 // comprueba si el dominio termina en barra
+										dominio=dominio.substring(0,dominio.length()-1); // si la tiene, se la quita
+										}
+										link=dominio+link;		// se forma la URL absouluta*/
+										try{
+										    URI uri = (dominio.toURI()).resolve(URI.create(link));
+										    link=uri.toString();
+										}//fin de try
+										catch(URISyntaxException e){
+										    Utils.logger.finest("Error al crear una URL absoluta de una relativa: "+e.toString()+" "+link);
+										}//fin de catch
+									}
+									if(validURL(link)==true){
+										urls.add(link);								//a–ade la URL a la lista
+										//log("Se ha obtenido la URL: "+link);
+									}
 								//System.out.println("URL anadida: "+link);	//muestra la URL por pantalla
+								}
 							}
 						}//fin de if hasGrammar
 					}//fin de try
@@ -84,13 +101,13 @@ public class GetURL{
 					}
 				}//fin de else
 			}//fin de while (end)
-			Utils.logger.finer("Se han obtenido "+urls.size()+" URLs en el recurso "+dominio.toString());
+			Utils.logger.finer("Se han obtenido "+urls.size()+" URLs y "+mails.size()+" e-mails en el recurso "+dominio.toString());
 		}//fin de try
 		catch(Exception e){
 			//urls=urls;
 		    Utils.logger.finer("ERROR: No se ha terminado de analizar el recurso "+dominio.toString()+". "+urls.size()+" URLs obtenidas");
 		}
-	}//fin de getURL
+	}//fin de getURLAndMail
 	
 	//Funci—n que determina si el substring de href responde a la estructura esperada
 	public boolean hasGrammar(String sString){
@@ -210,9 +227,14 @@ public class GetURL{
 	}//fin de validURL
 		           
 	//Método que devuelve la estructura de datos con los enlaces
-	public LinkedList<String> returnURL() throws Exception{
+	public static LinkedList<String> returnURL() throws Exception{
 		
 		return urls;
+	}
+	
+	public static LinkedList<String> returnMail() throws Exception{
+	
+		return mails;
 	}
 		
 }

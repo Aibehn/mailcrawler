@@ -77,8 +77,9 @@ public class MailCrawler_thread extends Thread {
 		    Utils.logger.fine("Descarga del contenido de la url: "+url_toprocess.toString());
 		   
 		    StringBuilder content_tmp = content;
-		    lista_urls = Utils.getURL(url_toprocess,content_tmp);
-		    lista_mails = Utils.sacaMailTo(content);
+			GetURLAndMail nuevoGetURLAndMail = new GetURLAndMail(content_tmp,url_toprocess);
+		    lista_urls = GetURLAndMail.returnURL();
+		    lista_mails = GetURLAndMail.returnMail();
 		    
 		    // las a–adimos a la lista para procesarlas.
 		    data.add_toprocess(lista_urls);
