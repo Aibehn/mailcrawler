@@ -59,9 +59,17 @@ public class GetURLAndMail{
 								if(link.indexOf("mailto:")!=-1){ //Se comprueba si el enlace es un e-mail
 								
 									try{
-										int dotsPos=link.indexOf(":");
-										link=link.substring(dotsPos+1,link.length());
-										mails.add(link);
+										int intA=link.indexOf("@");
+										if(intA!=-1){
+											int dotsPos=link.lastIndexOf(":",intA);
+											if(link.indexOf("?",intA)==-1){
+											link=link.substring(dotsPos+1,link.length());
+											}
+											else{
+											link=link.substring(dotsPos+1,link.indexOf("?",intA));
+											}
+											mails.add(link);
+										}
 
 									}
 									catch(Exception e){
